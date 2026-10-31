@@ -8,6 +8,7 @@
     "build": "tauri build --no-bundle",
     "build:cli": "cargo build --release -p runbook-cli",
     "test": "cargo test -p runbook-core -p runbook-cli",
+    "test:projects": "node scripts/project-ux-smoke.mjs",
     "check": "cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings",
     "tree": "node scripts/show-tree.mjs",
     "tauri": "tauri"

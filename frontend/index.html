@@ -17,16 +17,17 @@
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="vendor/xterm.css">
   <link rel="stylesheet" href="css/native.css">
+  <link rel="stylesheet" href="css/project-navigation.css">
 </head>
 <body>
 <div class="app">
     <header class="topbar od-row">
-      <div class="brand od-row" aria-label="Runbook">
+      <a class="brand od-row" href="projects.html" aria-label="Runbook 项目管理" style="color:inherit;text-decoration:none">
         <svg class="brandmark" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M7 10l8 8-8 8M21 26h9" stroke="currentColor" stroke-width="3"/><path d="M22 8h8" stroke="currentColor" stroke-width="2" opacity=".5"/></svg>
         <span class="wordmark">runbook</span>
-      </div>
+      </a>
       <div class="brand-divider" aria-hidden="true"></div>
-      <div class="breadcrumb od-row"><span class="workspace-name">项目</span><svg class="od-icon workspace-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg><strong>命令执行器</strong></div>
+      <nav class="project-navigation" aria-label="工作空间导航"><a class="workspace-home" href="projects.html">个人工作空间</a><span class="navigation-divider" aria-hidden="true">/</span><button id="project-switch" class="project-switch" type="button" aria-expanded="false" aria-controls="project-switcher" aria-haspopup="dialog"><span class="workspace-name">项目</span><svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><strong class="nav-page">命令工作台</strong></nav>
       <div class="header-actions od-row">
         <a class="project-back" href="projects.html"><svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>项目管理</a>
         <span class="runtime-label"><svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m9 3-5 9 5 9M15 3l5 9-5 9"/></svg>桌面版</span>
@@ -85,6 +86,7 @@
   <script src="js/native-bridge.js"></script>
   <script src="js/native-store.js"></script>
   <script src="js/project-store.js"></script>
+  <script src="js/project-navigation.js"></script>
   <script src="js/state.js"></script>
   <script src="js/commands.js"></script>
   <script src="js/terminal.js"></script>

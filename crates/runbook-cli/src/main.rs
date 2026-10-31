@@ -52,6 +52,15 @@ enum Action {
 }
 #[derive(Subcommand)]
 enum ProjectAction {
+    /// Register a directory (current directory by default). Name defaults to its folder name.
+    Add {
+        /// Absolute, relative or home-relative directory to register.
+        path: Option<PathBuf>,
+        #[arg(long)]
+        name: Option<String>,
+        #[arg(long)]
+        description: Option<String>,
+    },
     /// List/search projects. Omit --archived to include both active and archived.
     List {
         #[arg(long)]
@@ -263,6 +272,39 @@ fn request(action: Action) -> Result<Request> {
         Action::Schema => json!({"op":"schema"}),
         Action::Api { input } => read_json(&input)?,
         Action::Project(action) => match action {
+            ProjectAction::Add {
+                path,
+                name,
+                description,
+            } => {
+                let path = match path {
+                    Some(path) => path,
+                    None => std::env::current_dir()?,
+                };
+                let raw = path.to_string_lossy();
+                let absolute = if path.is_absolute()
+                    || raw == "~"
+                    || raw.starts_with("~/")
+                    || raw.starts_with("~\\")
+                {
+                    path
+                } else {
+                    std::env::current_dir()?.join(path)
+                };
+                let canonical = runbook_core::store::directory(&absolute.to_string_lossy())?;
+                let folder_name = std::path::Path::new(&canonical)
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| {
+                        let root = canonical.trim_end_matches(['\\', '/']);
+                        if root.is_empty() {
+                            canonical.clone()
+                        } else {
+                            root.to_owned()
+                        }
+                    });
+                json!({"op":"project_create","input":{"name":name.unwrap_or(folder_name),"path":canonical,"description":description.unwrap_or_default()}})
+            }
             ProjectAction::List { query, archived } => {
                 json!({"op":"project_list","query":query,"archived":archived})
             }

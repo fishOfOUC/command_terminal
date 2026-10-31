@@ -7,9 +7,16 @@ const Runbook = {
     return window.__TAURI__.core.invoke(command,args);
   },
   api(request) { return this.invoke('api',{request}); },
+  message(error) {
+    const field=error?.details?.field;
+    if(error?.code==='VALIDATION_ERROR' && field==='path') return '工作目录不可用，请检查路径是否正确、目录是否存在，以及是否有访问权限。';
+    if(error?.code==='VALIDATION_ERROR' && field==='name') return '项目名称不能为空，且不能超过 60 个字符。';
+    if(error?.code==='VALIDATION_ERROR' && field==='description') return '项目描述不能超过 1000 个字符。';
+    return ({REVISION_CONFLICT:'数据已被其他窗口或 CLI 修改。请重新载入最新版本后核对修改。',ALREADY_EXISTS:'该目录或 ID 已存在，请使用已有项目。',NOT_FOUND:'项目或命令已不存在，请刷新列表。',IO_ERROR:'无法访问本地数据，请检查目录和访问权限后重试。'})[error?.code] || error?.message || String(error);
+  },
   report(error) {
     console.error('Runbook:',error);
-    const message = error?.code === 'REVISION_CONFLICT' ? '数据已被其他窗口或 CLI 修改。请刷新后再保存；当前编辑内容仍保留。' : error?.message || String(error);
+    const message = this.message(error);
     toast(message);
     return message;
   },

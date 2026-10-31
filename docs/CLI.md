@@ -2,7 +2,19 @@
 
 CLI 是独立的 Rust 程序，不启动 Tauri、浏览器或 Node.js。下面示例在项目根目录运行。
 
+Windows 可运行 `scripts/register-cli.ps1` 为当前用户注册全局 `runbook` 命令。启动器指向当前仓库的 `dist/runbook.exe`，保留调用目录；如果需要新增 PATH，已有终端需重新打开。也可以继续使用可执行文件的完整路径。
+
 ## 创建项目和命令
+
+在项目目录里执行 `runbook project add` 即可添加当前目录：项目名称取实际目录名，描述留空，不需要手填路径或启动桌面程序。也支持相对路径、绝对路径和 `~/`，并可覆盖名称、描述：
+
+```powershell
+runbook project add
+runbook project add ../another-project
+runbook project add 'E:\Projects\my-app' --name '我的应用' --description '本地开发'
+```
+
+名称超过 60 个字符时请用 `--name` 指定短名称。盘符根目录使用盘符作为名称。已添加的目录（包括已归档项目）返回 `ALREADY_EXISTS` 和已有项目 ID，不会覆盖或自动恢复项目。未将 CLI 加入 PATH 时，请使用 `dist/runbook.exe` 的完整路径。
 
 ```powershell
 $cli = '.\dist\runbook.exe'

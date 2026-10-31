@@ -1,0 +1,28 @@
+/* A shared, keyboard-accessible project switcher. Existing palette and type are retained. */
+.project-navigation { display:flex; align-items:center; gap:12px; min-width:0; font-size:13px; }
+.project-navigation .workspace-home { color:var(--muted); text-decoration:none; white-space:nowrap; }
+.project-navigation .workspace-home:hover { color:var(--text); text-decoration:underline; text-underline-offset:4px; }
+.project-navigation a:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.navigation-divider { color:var(--faint); }
+.project-switch { display:inline-flex; align-items:center; gap:8px; min-width:0; max-width:250px; min-height:36px; padding:4px 8px; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--text); font-size:13px; }
+.project-switch:hover,.project-switch[aria-expanded=true] { background:var(--active); border-color:var(--border); }
+.project-switch .od-icon { width:14px; height:14px; flex:none; color:var(--muted); }
+.project-switch .workspace-name { display:block; max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nav-page { font-size:12px; font-weight:400; color:var(--faint); white-space:nowrap; }
+.project-switcher { position:fixed; inset:auto; margin:0; width:min(400px,calc(100vw - 24px)); padding:12px; border:1px solid var(--control); border-radius:8px; background:var(--raised); color:var(--text); box-shadow:0 12px 32px #0006; overflow:auto; }
+.project-switcher input { font-size:13px; }
+.switch-caption { font-size:12px; color:var(--muted); padding:12px 8px 6px; }
+.switch-results { max-height:320px; overflow:auto; overscroll-behavior:contain; }
+.switch-results>a { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 8px; border-radius:4px; color:var(--text); text-decoration:none; }
+.switch-results>a:hover,.switch-results>a:focus-visible { background:var(--active); }
+.switch-results>a:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.switch-results>a>span:first-child { min-width:0; display:grid; gap:2px; }
+.switch-results strong { font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.switch-results code { font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.switch-current { color:var(--accent); font-size:12px; flex:none; }
+.switch-empty { font-size:13px; color:var(--muted); padding:16px 8px; }
+.switch-manage { display:block; margin-top:8px; border-top:1px solid var(--border); padding:12px 8px 2px; font-size:13px; color:var(--muted); text-decoration:none; }
+.switch-manage:hover { color:var(--text); }
+@media(max-width:1100px) { .nav-page { display:none; } .project-navigation { gap:6px; } .project-switch { max-width:170px; } .topbar { --od-gap:16px; } }
+@media(max-width:850px) { body:not(.projects-page) .project-navigation .workspace-home,body:not(.projects-page) .navigation-divider { display:none; } }
+@media(max-width:640px) { .project-navigation .workspace-home,.navigation-divider,.brand-divider { display:none; } .project-switch { max-width:140px; min-height:44px; } .project-switcher input { min-height:44px; } .projects-page .header-actions { display:none; } }

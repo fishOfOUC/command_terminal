@@ -2,6 +2,7 @@
 // 桌面适配器只进行单对象增删改，禁止整库覆盖。CLI 与桌面共用 Rust 服务和版本检查。
 function createNativeStore() {
   let cache=[];
+  let sessionCache=[];
   let available=false;
   let info=null;
   const clone=value=>JSON.parse(JSON.stringify(value));
@@ -13,12 +14,15 @@ function createNativeStore() {
     const sessions=await Runbook.invoke('terminal_list',{project:null});
     const cleanup=await Promise.allSettled(sessions.filter(s=>!active.has(s.projectId)).map(s=>Runbook.invoke('terminal_close',{id:s.id})));
     cleanup.forEach(result=>{if(result.status==='rejected' && result.reason?.code!=='NOT_FOUND')console.warn('Terminal cleanup:',result.reason);});
+    sessionCache=sessions.filter(s=>active.has(s.projectId));
+    window.dispatchEvent(new Event('runbook:projects-changed'));
     return clone(cache);
   }
   const store={
     ready:null,
     read:()=>clone(cache),
     get:id=>clone(cache.find(p=>p.id===id) || null),
+    sessions:project=>clone(sessionCache.filter(s=>!project || s.projectId===project)),
     refresh,
     get persistent(){return available;},
     get info(){return info;},
@@ -49,5 +53,7 @@ function createNativeStore() {
     async touch(id) {await Runbook.api({op:'project_touch',id});await refresh();}
   };
   store.ready=(async()=>{info=await Runbook.api({op:'info'});await refresh();return store;})();
+  // Pages expose a retry action; keep an initial connection failure from becoming unhandled.
+  store.ready.catch(()=>{});
   return store;
 }

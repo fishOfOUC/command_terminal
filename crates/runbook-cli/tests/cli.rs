@@ -6,7 +6,14 @@ use std::{
 };
 
 fn cli(dir: &Path, args: &[&str], input: Option<Value>) -> (i32, Value) {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_runbook"))
+    cli_at(dir, args, input, None)
+}
+fn cli_at(dir: &Path, args: &[&str], input: Option<Value>, cwd: Option<&Path>) -> (i32, Value) {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_runbook"));
+    if let Some(cwd) = cwd {
+        command.current_dir(cwd);
+    }
+    let mut child = command
         .arg("--data-dir")
         .arg(dir)
         .args(args)
@@ -36,6 +43,67 @@ fn cli(dir: &Path, args: &[&str], input: Option<Value>) -> (i32, Value) {
         serde_json::from_slice(&out.stdout)
             .unwrap_or_else(|_| panic!("Invalid output: {}", String::from_utf8_lossy(&out.stdout))),
     )
+}
+#[test]
+fn add_project_uses_real_directory_name_and_preserves_existing_projects() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = temp.path().join("db");
+    let work = temp.path().join("真实项目 with spaces");
+    std::fs::create_dir(&work).unwrap();
+    let (code, created) = cli_at(&db, &["project", "add"], None, Some(&work));
+    assert_eq!(code, 0, "{created}");
+    assert_eq!(created["data"]["name"], "真实项目 with spaces");
+    assert_eq!(created["data"]["description"], "");
+    assert_eq!(created["data"]["commands"], json!([]));
+    let id = created["data"]["id"].as_str().unwrap();
+    let (code, duplicate) = cli_at(
+        &db,
+        &["project", "add", ".", "--name", "不要覆盖"],
+        None,
+        Some(&work),
+    );
+    assert_eq!(code, 4);
+    assert_eq!(duplicate["error"]["details"]["projectId"], id);
+    let (code, _) = cli(
+        &db,
+        &["project", "update", "--id", id, "--archived", "true"],
+        None,
+    );
+    assert_eq!(code, 0);
+    let (code, _) = cli_at(
+        &db,
+        &["project", "add", "真实项目 with spaces"],
+        None,
+        Some(temp.path()),
+    );
+    assert_eq!(code, 4);
+    let (_, existing) = cli(&db, &["project", "get", "--id", id], None);
+    assert_eq!(existing["data"]["name"], "真实项目 with spaces");
+    assert_eq!(existing["data"]["archived"], true);
+    let other = temp.path().join("other");
+    std::fs::create_dir(&other).unwrap();
+    let (code, custom) = cli_at(
+        &db,
+        &[
+            "project",
+            "add",
+            "other",
+            "--name",
+            "自定义名称",
+            "--description",
+            "说明",
+        ],
+        None,
+        Some(temp.path()),
+    );
+    assert_eq!(code, 0);
+    assert_eq!(custom["data"]["name"], "自定义名称");
+    assert_eq!(custom["data"]["description"], "说明");
+    let (code, missing) = cli_at(&db, &["project", "add", "missing"], None, Some(temp.path()));
+    assert_eq!(code, 2);
+    assert_eq!(missing["error"]["details"]["field"], "path");
+    let (_, list) = cli(&db, &["project", "list"], None);
+    assert_eq!(list["data"]["total"], 2);
 }
 #[test]
 fn cli_machine_contract_crud_stdin_schema_and_errors() {
