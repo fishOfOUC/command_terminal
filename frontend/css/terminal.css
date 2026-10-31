@@ -1,0 +1,25 @@
+/* 终端面板 — 标签栏、上下文、日志输出、执行状态条。 */
+.terminal-pane { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:72px 44px minmax(0,1fr) auto; min-width:0; min-height:0; background:var(--terminal); }
+.terminal-tabs { display:flex; align-items:stretch; justify-content:space-between; padding:0 var(--s6); border-bottom:1px solid var(--border); gap:var(--s4); }
+.terminal-tab { display:flex; align-items:center; gap:var(--s3); border-bottom:1px solid var(--accent); padding:0 var(--s2); white-space:nowrap; font-size:var(--fs-small); }
+.terminal-tab .od-icon { --od-icon-size:18px; color:var(--muted); }
+.terminal-tab .mono { font-size:var(--fs-meta); color:var(--faint); margin-left:var(--s2); }
+.terminal-actions { --od-gap:var(--s3); }
+.terminal-actions .text-button { font-size:var(--fs-meta); color:var(--muted); }
+.toolbar-divider { height:16px; width:1px; background:var(--control); }
+.terminal-context { display:flex; align-items:center; justify-content:space-between; gap:var(--s4); padding:0 var(--s8); border-bottom:1px solid var(--rule); background:var(--surface); font-size:var(--fs-meta); color:var(--faint); }
+.terminal-path { --od-gap:var(--s2); min-width:0; }
+.terminal-path { flex:1; }
+.terminal-path .mono { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.terminal-context>span { flex:none; white-space:nowrap; }
+.terminal-context .od-icon { --od-icon-size:14px; }
+.terminal-bottom { border-top:1px solid var(--border); padding:var(--s4) var(--s8); display:flex; flex-direction:column; gap:var(--s4); }
+.execution-strip { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; }
+.execution-strip> .od-field { --od-gap:var(--s1); }
+#execution-name { font-size:var(--fs-small); }
+#execution-detail { color:var(--faint); font-size:var(--fs-meta); }
+#elapsed { font-size:var(--fs-small); color:var(--muted); margin-left:auto; white-space:nowrap; }
+.stop-button { min-height:32px; padding:var(--s1) var(--s3); }
+.stop-button .od-icon { --od-icon-size:12px; }
+.terminal-note { display:flex; align-items:center; justify-content:space-between; gap:var(--s4); color:var(--faint); font-size:var(--fs-meta); flex-wrap:wrap; }
+.terminal-note kbd { color:var(--muted); border:1px solid var(--control); padding:2px var(--s1); border-radius:var(--radius-small); font-size:11px; }

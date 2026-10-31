@@ -1,0 +1,28 @@
+/* 应用外壳 — 顶栏（品牌 / 面包屑）、工作区双栏栅格、状态栏。 */
+.app { min-height:640px; height:100dvh; display:grid; grid-template-rows:76px 1fr 36px; }
+.topbar { padding:0 var(--s8); border-bottom:1px solid var(--border); --od-gap:var(--s8); }
+.brand { --od-gap:var(--s3); flex:none; }
+.brandmark { width:36px; height:36px; flex:none; color:var(--accent); }
+.wordmark { font-family:var(--mono); font-size:22px; font-weight:600; letter-spacing:-1px; }
+.brand-divider { height:24px; width:1px; background:var(--control); }
+.breadcrumb { --od-gap:var(--s3); font-size:var(--fs-small); color:var(--muted); }
+.breadcrumb .od-icon { --od-icon-size:14px; color:var(--faint); }
+.breadcrumb strong { color:var(--text); font-weight:500; }
+.breadcrumb { min-width:0; }
+.workspace-name { max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.breadcrumb strong { white-space:nowrap; }
+.breadcrumb a { color:var(--muted); text-decoration:none; }
+.breadcrumb a:hover { color:var(--text); text-decoration:underline; }
+.project-back { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:13px; text-decoration:none; white-space:nowrap; }
+.project-back:hover { color:var(--text); }
+.project-back:focus-visible,.breadcrumb a:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.project-back .od-icon { width:16px; height:16px; }
+.header-actions { margin-left:auto; --od-gap:var(--s6); }
+
+.workspace { display:grid; grid-template-columns:minmax(360px, 34%) minmax(0,1fr); grid-template-rows:minmax(0,1fr); min-height:0; }
+/* At 1440px: 489.6px command pane + 950.4px terminal = 1440px. No unused third rail. */
+
+.statusbar { padding:0 var(--s6); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:var(--s4); background:var(--ground); font-size:11px; color:var(--faint); }
+.statusbar .od-row { --od-gap:var(--s2); }
+.status-light { display:block; width:6px; height:6px; background:var(--accent); border-radius:50%; flex:none; }
+.statusbar-right { --od-gap:var(--s5); }

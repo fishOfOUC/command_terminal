@@ -1,0 +1,57 @@
+/* 命令库面板 — 标题与搜索、命令列表、参数配置、执行预览。 */
+.commands-pane { background:var(--ground); border-right:1px solid var(--border); min-width:0; }
+.library-head { padding:var(--s8) var(--s6) var(--s5); }
+.library-title { --od-gap:var(--s3); margin-bottom:var(--s6); }
+h1 { font-size:var(--fs-title); font-weight:600; letter-spacing:-.5px; }
+.count { font:var(--fs-small)/1.6 var(--mono); color:var(--muted); border:1px solid var(--control); border-radius:var(--radius-small); padding:0 var(--s2); }
+#add-command { margin-left:auto; }
+.search-wrap { position:relative; display:flex; align-items:center; }
+.search-wrap>.od-icon { position:absolute; left:var(--s3); color:var(--faint); pointer-events:none; }
+.search-wrap input { width:100%; padding-left:var(--s10); padding-right:var(--s10); background:var(--surface); }
+.search-wrap>kbd { position:absolute; right:var(--s3); color:var(--faint); border:1px solid var(--control); border-radius:var(--radius-small); font-size:var(--fs-meta); line-height:20px; padding:0 6px; pointer-events:none; }
+
+.section-label { margin:var(--s5) 0 0; display:flex; justify-content:space-between; align-items:center; color:var(--faint); font-size:var(--fs-meta); }
+.section-label .mono { font-size:var(--fs-meta); }
+.commands-scroll { padding:0 var(--s4) var(--s6); scrollbar-width:thin; scrollbar-color:var(--control) transparent; }
+.command { border:1px solid transparent; border-bottom-color:var(--border); border-radius:0; margin-bottom:var(--s1); }
+.command.selected { border-color:var(--control); border-radius:var(--radius); background:var(--raised); }
+.command-summary { display:flex; align-items:center; gap:var(--s2); padding:var(--s4) var(--s3); }
+.command-toggle { display:flex; align-items:flex-start; gap:var(--s3); padding:0; flex:1; min-width:0; background:transparent; color:var(--text); border:0; text-align:left; }
+.command-toggle>.od-icon { --od-icon-size:16px; margin-top:5px; color:var(--faint); }
+.command.selected .command-toggle>.od-icon { color:var(--accent); }
+.command-name { font-size:var(--fs-body); font-weight:500; line-height:24px; overflow-wrap:anywhere; }
+.command-base { font-size:var(--fs-small); line-height:24px; color:var(--faint); }
+.command.selected .command-name { text-decoration:underline; text-decoration-color:var(--accent); text-underline-offset:8px; text-decoration-thickness:1px; }
+.run-button { border:1px solid var(--control); background:var(--ground); color:var(--text); }
+.run-button .od-icon { --od-icon-size:16px; }
+.command-config { padding:0 var(--s5) var(--s5) var(--s5); }
+.config-caption { display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--control); padding-top:var(--s3); margin-bottom:var(--s4); color:var(--muted); font-size:var(--fs-meta); }
+.config-caption .text-button { min-height:28px; padding:0; font-size:var(--fs-meta); }
+.config-caption .od-icon { --od-icon-size:14px; }
+.parameter-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--s4) var(--s3); }
+.parameter-field { --od-gap:var(--s2); }
+.parameter-field>label { display:flex; align-items:center; justify-content:space-between; gap:var(--s2); font-size:var(--fs-small); color:var(--muted); }
+.parameter-flag { font:var(--fs-meta)/1.6 var(--mono); color:var(--faint); }
+.parameter-field input { font-family:var(--mono); background:var(--ground); }
+.parameter-field.full-width { grid-column:1/-1; }
+.toggle-line { display:flex; align-items:center; justify-content:space-between; gap:var(--s3); margin-top:var(--s4); padding:var(--s2) 0; font-size:var(--fs-small); }
+.switch { position:relative; display:inline-flex; width:32px; height:20px; flex:none; }
+.switch input { position:absolute; width:100%; height:100%; min-height:0; margin:0; opacity:0; cursor:pointer; }
+.switch-visual { display:block; width:32px; height:20px; background:var(--control); border-radius:999px; pointer-events:none; }
+.switch-visual::after { content:""; display:block; width:12px; height:12px; border-radius:50%; margin:4px; background:var(--text); transition:transform var(--motion) ease-out; }
+.switch input:checked+.switch-visual { background:#3f685b; }
+.switch input:checked+.switch-visual::after { transform:translateX(12px); }
+.switch input:focus-visible+.switch-visual { outline:2px solid var(--accent); outline-offset:3px; }
+.preview-wrap { margin-top:var(--s4); padding:var(--s3); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); }
+.preview-label { font-size:var(--fs-meta); color:var(--faint); margin-bottom:var(--s2); }
+.command-preview { display:block; font-size:var(--fs-small); line-height:1.8; color:var(--muted); overflow-wrap:anywhere; white-space:pre-wrap; }
+.command-preview::before { content:"$ "; color:var(--accent); }
+.no-parameters { color:var(--muted); font-size:var(--fs-small); padding:0 0 var(--s2); }
+.field-error { font-size:var(--fs-small); color:var(--negative); margin-top:var(--s2); overflow-wrap:anywhere; }
+[aria-invalid=true] { border-color:var(--negative); }
+.pane-footer { padding:var(--s4) var(--s6); border-top:1px solid var(--border); color:var(--faint); font-size:var(--fs-meta); --od-gap:var(--s2); }
+.pane-footer .od-icon { --od-icon-size:14px; }
+.empty-search { padding:var(--s8) var(--s4); }
+.empty-search h3 { font-size:var(--fs-body); font-weight:500; margin-bottom:var(--s2); }
+.empty-search p { color:var(--muted); font-size:var(--fs-small); }
+.empty-search button { margin-top:var(--s4); }

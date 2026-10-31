@@ -1,0 +1,7 @@
+{
+  "$schema":"../gen/schemas/desktop-schema.json",
+  "identifier":"main",
+  "description":"Runbook local desktop window. No remote content or shell plugin is enabled.",
+  "windows":["main"],
+  "permissions":["core:default"]
+}

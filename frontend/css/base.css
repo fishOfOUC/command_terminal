@@ -1,0 +1,32 @@
+/* 基础样式 — 设计令牌（:root 变量）、元素重置、排版与工具类（.mono / .muted / .sr-only）。 */
+:root {
+  --ground:#171719; --surface:#131315; --terminal:#101112; --raised:#202123; --active:#242628;
+  --border:#2b2c2f; --rule:#242528; --control:#45484b;
+  --text:#f1f2f3; --muted:#b3b7bb; --faint:#92989d;
+  --accent:#78d9ba; --accent-ground:#1d302c; --positive:var(--accent); --negative:#ff9ca7; --warning:#e3c58a;
+  --primary:#edf2ef; --primary-ink:#16211c; --primary-hover:#fff;
+  --font:"Public Sans","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  --mono:"Cascadia Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  --fs-title:24px; --fs-heading:18px; --fs-body:16px; --fs-small:13px; --fs-meta:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s10:40px;
+  --radius:8px; --radius-small:4px; --control-height:40px; --motion:180ms;
+}
+* { box-sizing:border-box; }
+html { height:100%; background:var(--ground); }
+body { margin:0; height:100%; color:var(--text); font:var(--fs-body)/1.6 var(--font); -webkit-font-smoothing:antialiased; }
+button,input,select,textarea { font:inherit; }
+button { cursor:pointer; }
+button { color:var(--text); }
+button:disabled { cursor:not-allowed; }
+button,input,select,textarea { -webkit-tap-highlight-color:transparent; }
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+::selection { background:var(--accent-ground); color:var(--text); }
+::placeholder { color:var(--faint); opacity:1; }
+h1,h2,h3,p { margin:0; }
+svg { stroke-linecap:round; stroke-linejoin:round; }
+.od-icon { --od-icon-size:18px; vertical-align:middle; }
+.mono,code,kbd { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.muted { color:var(--muted); }
+.faint { color:var(--faint); }
+.small { font-size:var(--fs-small); }
+.sr-only { position:absolute; top:0; left:0; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }

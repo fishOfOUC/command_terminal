@@ -1,0 +1,20 @@
+/* 通用组件 — 按钮、表单控件、运行指示器、Toast。 */
+.runtime-label { display:flex; align-items:center; gap:var(--s2); font-size:var(--fs-meta); color:var(--muted); border:1px solid var(--control); border-radius:var(--radius-small); padding:var(--s1) var(--s2); white-space:nowrap; }
+.runtime-label .od-icon { --od-icon-size:14px; }
+.text-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--s2); min-height:36px; padding:var(--s1) var(--s2); background:transparent; border:0; border-radius:var(--radius-small); font-size:var(--fs-small); }
+.text-button .od-icon { color:var(--muted); }
+.primary-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--s2); min-height:var(--control-height); padding:var(--s2) var(--s4); border:1px solid transparent; border-radius:var(--radius); background:var(--primary); color:var(--primary-ink); font-size:var(--fs-small); font-weight:600; white-space:nowrap; }
+.secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--s2); min-height:var(--control-height); padding:var(--s2) var(--s4); background:var(--raised); color:var(--text); border:1px solid var(--control); border-radius:var(--radius); font-size:var(--fs-small); }
+.icon-button { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; flex:none; border:1px solid transparent; border-radius:var(--radius); background:transparent; color:var(--muted); }
+.icon-button:disabled { color:var(--faint); background:var(--raised); }
+
+input,select,textarea { width:100%; min-width:0; min-height:var(--control-height); border:1px solid var(--control); border-radius:var(--radius); color:var(--text); background:var(--surface); padding:var(--s2) var(--s3); }
+input,select { font-size:var(--fs-small); }
+input[type=number] { appearance:textfield; }
+input::-webkit-inner-spin-button { appearance:none; }
+input[type=checkbox] { width:18px; min-height:18px; height:18px; flex:none; accent-color:var(--accent); }
+
+.running-indicator { display:inline-flex; width:12px; height:12px; border:2px solid var(--control); border-top-color:var(--accent); border-radius:50%; animation:spin 900ms linear infinite; flex:none; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.toast { position:fixed; bottom:56px; left:50%; transform:translateX(-50%); max-width:calc(100% - 32px); padding:var(--s3) var(--s5); border:1px solid var(--control); background:var(--raised); color:var(--text); border-radius:var(--radius); box-shadow:0 8px 24px #0006; font-size:var(--fs-small); z-index:5; }

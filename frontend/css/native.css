@@ -1,0 +1,17 @@
+/* 桌面终端布局。 */
+#native-terminal { min-height:0; min-width:0; padding:20px 24px; overflow:hidden; }
+#native-terminal .xterm { height:100%; }
+.native-session-tools { display:flex; align-items:center; gap:6px; min-width:0; margin-left:12px; }
+.native-session-tools select { max-width:240px; width:200px; min-height:32px; font-size:12px; }
+.native-session-tools .icon-button { width:32px; height:32px; }
+html[data-runtime=desktop] .terminal-tabs { flex-wrap:wrap; align-content:center; gap:4px 16px; }
+html[data-runtime=desktop] .terminal-tab { border:0; padding:0; }
+html[data-runtime=desktop] .terminal-tab>span:not(.mono) { white-space:nowrap; }
+html[data-runtime=desktop] .terminal-actions { margin-left:auto; }
+html[data-runtime=desktop] .terminal-pane { grid-template-rows:76px 44px minmax(0,1fr) auto; }
+.command-danger { color:var(--negative); margin-right:auto; }
+@media(max-width:1150px) {
+  .native-session-tools select { width:140px; }
+  html[data-runtime=desktop] .terminal-actions .button-label { display:none; }
+  html[data-runtime=desktop] .terminal-tabs { padding-inline:16px; }
+}

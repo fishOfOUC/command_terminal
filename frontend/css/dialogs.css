@@ -1,0 +1,32 @@
+/* 对话框 — 命令编辑器（表单 / 参数定义）与快捷键说明。 */
+dialog { color:var(--text); background:var(--ground); border:1px solid var(--control); border-radius:var(--radius); padding:0; width:min(720px,calc(100% - 32px)); max-height:calc(100dvh - 48px); box-shadow:0 24px 80px #0008; }
+dialog::backdrop { background:#000b; }
+.dialog-header { display:flex; align-items:flex-start; justify-content:space-between; padding:var(--s6) var(--s8); border-bottom:1px solid var(--border); gap:var(--s4); }
+.dialog-header h2 { font-size:20px; font-weight:600; }
+.dialog-header p { color:var(--muted); font-size:var(--fs-small); margin-top:var(--s1); }
+.dialog-body { padding:var(--s6) var(--s8); }
+.editor-fields { display:grid; gap:var(--s5); }
+.editor-field { --od-gap:var(--s2); }
+.editor-field label { font-size:var(--fs-small); color:var(--muted); }
+.required { color:var(--negative); }
+.editor-field input { font-size:var(--fs-body); }
+.editor-field .mono { font-size:var(--fs-small); }
+.helper { font-size:var(--fs-meta); color:var(--faint); }
+.parameter-editor-header { display:flex; align-items:center; justify-content:space-between; gap:var(--s4); margin-top:var(--s6); margin-bottom:var(--s4); }
+.parameter-editor-header h3 { font-size:var(--fs-body); font-weight:500; }
+.parameter-editor-header button { font-size:var(--fs-small); }
+.editor-parameters { display:grid; gap:var(--s3); }
+.parameter-definition { display:grid; grid-template-columns:1fr 1fr 88px 1fr 32px; gap:var(--s2); padding:var(--s3); border:1px solid var(--control); border-radius:var(--radius); }
+.parameter-definition label { font-size:11px; color:var(--muted); margin-bottom:var(--s1); display:block; }
+.parameter-definition input,.parameter-definition select { min-height:36px; padding:var(--s1) var(--s2); font-size:var(--fs-small); }
+.parameter-definition .icon-button { width:32px; height:36px; align-self:end; }
+.parameter-definition .od-field { --od-gap:0px; }
+.parameter-definition .field-error { grid-column:1/-1; }
+.parameter-empty { padding:var(--s4); border:1px dashed var(--control); border-radius:var(--radius); font-size:var(--fs-small); color:var(--muted); }
+.editor-preview { margin-top:var(--s6); }
+.dialog-footer { display:flex; align-items:center; justify-content:flex-end; gap:var(--s3); border-top:1px solid var(--border); padding:var(--s5) var(--s8); }
+.dialog-footer .helper { margin-right:auto; }
+#shortcuts { width:min(440px,calc(100% - 32px)); }
+.shortcut-row { display:flex; align-items:center; justify-content:space-between; gap:var(--s4); padding:var(--s3) 0; font-size:var(--fs-small); border-bottom:1px solid var(--border); }
+.shortcut-row:last-child { border:0; }
+.shortcut-row kbd { color:var(--muted); }

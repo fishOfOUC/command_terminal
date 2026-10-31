@@ -1,0 +1,152 @@
+/* 项目管理独立布局，复用命令工作台的颜色、字体和控件。 */
+.projects-page { font-size:14px; }
+.projects-page a { color:inherit; text-decoration:none; }
+.projects-page a:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.projects-app { min-height:100dvh; display:grid; grid-template-rows:76px 1fr 36px; }
+.projects-page .topbar { --od-gap:24px; }
+.topbar-scope { font-size:13px; color:var(--muted); }
+.topbar-scope span { margin:0 12px; color:var(--faint); }
+.local-scope { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+/* 1440 = 224px sidebar + 2 × 40px gutter + 1136px content. */
+.projects-layout { display:grid; grid-template-columns:224px minmax(0,1fr); }
+.projects-sidebar { border-right:1px solid var(--border); padding:32px 24px; display:flex; flex-direction:column; gap:40px; }
+.sidebar-label { font-size:12px; font-weight:400; color:var(--faint); margin-bottom:16px; }
+.sidebar-current { display:flex; align-items:center; gap:10px; color:var(--text); font-weight:500; }
+.sidebar-description { color:var(--faint); font-size:12px; margin-top:10px; }
+.recent-project-link { display:flex; align-items:center; gap:10px; min-height:40px; color:var(--muted) !important; font-size:13px; }
+.recent-project-link .od-icon { --od-icon-size:16px; }
+.recent-project-link span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.recent-project-link:hover { color:var(--text) !important; }
+.sidebar-note { margin-top:auto; padding-top:48px; }
+.sidebar-note>.od-icon { color:var(--faint); margin-bottom:12px; }
+.sidebar-note p { font-size:13px; margin-bottom:8px; }
+.sidebar-note>span { display:block; color:var(--faint); font-size:12px; line-height:1.9; }
+.projects-main { min-width:0; padding:36px 40px 28px; }
+.project-page-heading { display:flex; justify-content:space-between; gap:24px; align-items:center; margin-bottom:24px; }
+.project-page-heading h1 { font-size:24px; line-height:1.5; font-weight:600; }
+.project-page-heading p { color:var(--muted); margin-top:6px; font-size:14px; }
+.projects-page .primary-button { border-radius:999px; }
+.project-page-heading .primary-button>span { font-size:21px; font-weight:400; line-height:1; }
+.continue-project { background:var(--raised); border-radius:8px; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:24px; }
+.continue-body { min-width:0; }
+.continue-topline { display:flex; align-items:center; gap:12px; }
+.continue-project h2 { font-size:16px; font-weight:500; overflow-wrap:anywhere; }
+.continue-label { color:var(--faint); font-size:12px; white-space:nowrap; }
+.continue-path { color:var(--muted); margin-top:5px; font-size:12px; overflow-wrap:anywhere; }
+.continue-commands { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
+.continue-commands code { font-size:12px; padding:3px 8px; border-radius:4px; background:var(--ground); color:var(--muted); overflow-wrap:anywhere; }
+.continue-project>a { flex:none; border-color:var(--control); }
+.continue-project>a .od-icon { --od-icon-size:14px; }
+.project-tabs { display:flex; gap:28px; border-bottom:1px solid var(--border); }
+.project-tabs button { position:relative; display:flex; align-items:center; gap:8px; padding:0 0 14px; min-height:44px; background:none; border:0; color:var(--faint); font-size:13px; white-space:nowrap; }
+.project-tabs button[aria-pressed=true] { color:var(--text); }
+.project-tabs button[aria-pressed=true]::after { content:''; position:absolute; height:2px; bottom:-1px; left:0; right:0; background:var(--text); }
+.project-tabs span { color:var(--faint); font-size:12px; font-variant-numeric:tabular-nums; }
+.project-toolbar { display:flex; align-items:center; gap:20px; justify-content:space-between; margin:20px 0 14px; }
+.project-search { position:relative; width:316px; max-width:100%; }
+.project-search>.od-icon { position:absolute; left:12px; top:12px; color:var(--faint); --od-icon-size:16px; }
+.project-search input { padding-left:38px; padding-right:32px; background:var(--surface); }
+.project-search kbd { position:absolute; right:14px; top:9px; color:var(--faint); pointer-events:none; }
+.project-search input:not(:placeholder-shown)+kbd { display:none; }
+.sort-control { display:flex; align-items:center; gap:10px; color:var(--faint); font-size:12px; flex:none; }
+.sort-control select { width:auto; min-width:116px; background:var(--ground); }
+.projects-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+.projects-table th { font-size:12px; color:var(--faint); font-weight:400; text-align:left; padding:12px 12px 12px 0; }
+.projects-table th:first-child { width:33%; }
+.projects-table th:nth-child(2) { width:31%; }
+.projects-table th:nth-child(3) { width:7%; }
+.projects-table th:nth-child(4) { width:15%; }
+.projects-table th:last-child { width:14%; }
+.projects-table td { padding:16px 12px 16px 0; vertical-align:middle; border-bottom:1px solid var(--rule); }
+.projects-table .command-total,.projects-table .last-opened { text-align:right; font-variant-numeric:tabular-nums; }
+.projects-table .command-total { color:var(--text); }
+.projects-table th.command-total { color:var(--faint); }
+.project-name-line { display:flex; align-items:center; gap:8px; }
+.project-name { font-size:14px; font-weight:500; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+a.project-name:hover { text-decoration:underline; text-underline-offset:4px; }
+.star-mark { --od-icon-size:13px; color:var(--accent); }
+.project-description { font-size:13px; margin-top:5px; color:var(--faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.project-directory { display:flex; align-items:center; gap:8px; color:var(--muted); }
+.project-directory>.od-icon { --od-icon-size:16px; color:var(--faint); }
+.project-directory code { font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.last-opened { font-size:13px; color:var(--faint); }
+.project-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:6px; }
+.project-row-actions>a { font-size:12px; padding:8px 4px; white-space:nowrap; }
+.project-row-actions>a:hover { text-decoration:underline; text-underline-offset:4px; }
+.project-row-actions .icon-button { width:28px; height:32px; }
+.project-list-footer { display:flex; justify-content:space-between; gap:16px; color:var(--faint); font-size:12px; padding:18px 0; }
+.storage-notice { margin-top:24px; display:flex; align-items:flex-start; gap:8px; color:var(--faint); font-size:12px; }
+.storage-notice>.od-icon { --od-icon-size:15px; margin-top:2px; }
+.projects-empty { text-align:center; padding:48px 16px; }
+.projects-empty>.od-icon { --od-icon-size:32px; color:var(--faint); margin-bottom:12px; }
+.projects-empty h2 { font-size:16px; font-weight:500; }
+.projects-empty p { color:var(--muted); margin:8px 0 20px; font-size:13px; }
+.project-star-field { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+.projects-page dialog { width:min(560px,calc(100% - 32px)); }
+.projects-page .field-error { color:var(--negative); font-size:12px; }
+.projects-page [aria-invalid=true] { border-color:var(--negative); }
+.projects-page textarea { resize:vertical; font-size:14px; max-height:220px; }
+.project-menu { position:fixed; inset:auto; margin:0; min-width:164px; padding:6px; border:1px solid var(--control); border-radius:8px; background:var(--raised); color:var(--text); box-shadow:0 8px 24px #0006; }
+.project-menu button { display:flex; align-items:center; gap:10px; width:100%; min-height:38px; padding:8px 10px; background:none; border:0; border-radius:4px; font-size:13px; text-align:left; }
+.project-menu button:hover { background:var(--active); }
+.project-menu .od-icon { --od-icon-size:16px; color:var(--muted); }
+.project-menu .danger,.project-menu .danger .od-icon { color:var(--negative); }
+.danger-button { background:var(--negative); color:#291317; }
+#confirm-description { overflow-wrap:anywhere; color:var(--muted); font-size:14px; }
+@media (max-width:1150px) {
+  .projects-layout { grid-template-columns:190px minmax(0,1fr); }
+  .projects-sidebar { padding-inline:20px; }
+  .projects-main { padding:28px; }
+  .projects-table th:first-child { width:32%; }
+  .projects-table th:nth-child(2) { width:28%; }
+  .projects-table th:nth-child(4) { width:16%; }
+  .projects-table th:last-child { width:17%; }
+}
+@media (max-width:1024px) {
+  .projects-layout { grid-template-columns:minmax(0,1fr); }
+  .projects-sidebar { display:none; }
+  .projects-app { grid-template-rows:64px 1fr 36px; }
+  .projects-page .topbar { padding-inline:28px; }
+}
+@media (max-width:640px) {
+  .projects-app { grid-template-rows:64px 1fr auto; }
+  .projects-main { padding:24px 20px; }
+  .projects-page .topbar { padding-inline:20px; }
+  .topbar-scope,.local-scope { display:none; }
+  .project-page-heading { align-items:flex-start; margin-bottom:24px; gap:12px; }
+  .project-page-heading h1 { font-size:22px; }
+  .project-page-heading p { max-width:200px; font-size:12px; margin-top:8px; }
+  .project-page-heading .primary-button { padding-inline:12px; }
+  .continue-project { padding:14px 16px; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .continue-body { flex:1 1 100%; }
+  .continue-project>a { min-height:44px; width:100%; }
+  .continue-topline { justify-content:space-between; }
+  .continue-commands { margin-top:8px; }
+  .continue-commands code:nth-child(n+3) { display:none; }
+  .project-tabs { justify-content:space-between; gap:12px; }
+  .project-tabs button { font-size:13px; padding-bottom:12px; }
+  .project-toolbar { gap:10px; margin-top:20px; }
+  .project-search { flex:1; width:auto; min-width:0; }
+  .project-search input { font-size:12px; min-height:44px; padding-right:10px; }
+  .project-search>.od-icon { top:14px; }
+  .project-search kbd,.sort-control label { display:none; }
+  .sort-control select { min-width:100px; padding-inline:8px; font-size:12px; min-height:44px; }
+  .projects-table,.projects-table tbody { display:block; }
+  .projects-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .projects-table tr { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:'identity actions' 'directory directory' 'commands recent'; gap:8px 12px; padding:18px 0; border-bottom:1px solid var(--rule); }
+  .projects-table td { display:block; border:0; padding:0; min-width:0; }
+  .projects-table td:first-child { grid-area:identity; }
+  .projects-table td:nth-child(2) { grid-area:directory; }
+  .projects-table td:nth-child(3) { grid-area:commands; text-align:left; font-size:12px; }
+  .projects-table td:nth-child(3)::after { content:' 条命令'; color:var(--faint); }
+  .projects-table td:nth-child(4) { grid-area:recent; }
+  .projects-table td:nth-child(4)[data-opened=true]::before { content:'打开于 '; }
+  .projects-table td:last-child { grid-area:actions; }
+  .project-row-actions .icon-button { min-width:44px; min-height:44px; }
+  .project-row-actions { gap:2px; }
+  .project-row-actions>a { min-height:44px; display:flex; align-items:center; }
+  .project-description { white-space:normal; overflow-wrap:anywhere; }
+  .project-list-footer { flex-wrap:wrap; gap:6px; }
+  .storage-notice { margin-top:16px; }
+  .project-menu button { min-height:44px; }
+}
