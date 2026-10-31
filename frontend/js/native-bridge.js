@@ -8,6 +8,7 @@ const Runbook = {
   },
   api(request) { return this.invoke('api',{request}); },
   message(error) {
+    if(error?.code==='SESSION_FINISHED')return '当前终端已退出，请新建终端标签页。';
     const field=error?.details?.field;
     if(error?.code==='VALIDATION_ERROR' && field==='path') return '工作目录不可用，请检查路径是否正确、目录是否存在，以及是否有访问权限。';
     if(error?.code==='VALIDATION_ERROR' && field==='name') return '项目名称不能为空，且不能超过 60 个字符。';

@@ -29,10 +29,11 @@ await desktopTest(async({dir,cli,evaluate,send,eventually,click,fill,screenshot,
   await click('[data-filter="starred"]');await fill('#project-search','真实');
   assert.equal((await cli(['command','create','--project',id,'--input','-'],{id:'waiting',name:'等待任务',base:'Start-Sleep -Seconds 60'})).code,0);
   await click(`[data-project="${id}"] .project-directory`);
-  await eventually(()=>evaluate(()=>document.querySelector('#native-terminal .xterm') && document.querySelector('#session-select').options.length && document.querySelector('[data-command="waiting"] [data-action="run"]')),'row opens workbench');
+  await eventually(()=>evaluate(()=>document.querySelector('#native-terminal .xterm') && document.querySelectorAll('#session-tabs [role=tab]').length && document.querySelector('[data-command="waiting"] [data-action="run"]')),'row opens workbench');
+  await eventually(()=>evaluate(async()=>(await Runbook.invoke('terminal_list',{project:activeProject.id})).some(s=>s.ready)),'interactive prompt ready');
   await click('[data-command="waiting"] [data-action="run"]');
-  await eventually(()=>evaluate(()=>document.querySelector('#session-select').options.length===2),'command session starts');
-  const session=await evaluate(()=>document.querySelector('#session-select').value);
+  await eventually(()=>evaluate(()=>document.querySelectorAll('#session-tabs [role=tab]').length===1 && document.querySelector('#session-tabs .is-running')),'command uses current tab');
+  const session=await evaluate(()=>document.querySelector('#session-tabs [aria-selected=true]').dataset.session);
   await click('#project-switch');await fill('#switch-project-search','另一个');
   assert.equal(await evaluate(()=>document.querySelectorAll('.switch-results a').length),1);
   await click(`.switch-results a[href*="${secondId}"]`);
@@ -81,7 +82,7 @@ await desktopTest(async({dir,cli,evaluate,send,eventually,click,fill,screenshot,
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});pass('project library fits desktop, minimum width and narrow layout');
   await click(`[data-menu="${id}"]`);await click('[data-project-action="archive"]');
   await eventually(()=>evaluate(()=>document.querySelector('#project-confirm').open && !document.querySelector('#confirm-action').disabled),'archive session check');
-  assert(await evaluate(()=>document.querySelector('#confirm-session-summary').textContent.includes('2 个终端会话') && document.querySelector('#confirm-sessions').textContent.includes('等待任务')));await screenshot('archive-sessions.png');
+  assert(await evaluate(()=>document.querySelector('#confirm-session-summary').textContent.includes('1 个终端会话') && document.querySelector('#confirm-sessions').textContent.includes('等待任务')));await screenshot('archive-sessions.png');
   await click('#confirm-action');await eventually(()=>evaluate(()=>!document.querySelector('#project-confirm').open),'archive complete');
   assert(!(await evaluate(()=>Runbook.invoke('terminal_list',{project:null}))).some(s=>s.projectId===id));
   await click('#new-project');await fill('#project-name','重复归档');await fill('#project-path',work);await click('#project-save');
@@ -101,7 +102,7 @@ await desktopTest(async({dir,cli,evaluate,send,eventually,click,fill,screenshot,
     const row=[...document.querySelectorAll('#project-list tr')].find(row=>{const r=row.getBoundingClientRect();return r.top>80 && r.bottom<innerHeight;});
     if(!row)throw Error('No visible row for navigation');row.querySelector('.project-name').click();
   });
-  await eventually(()=>evaluate(()=>document.querySelector('#native-terminal .xterm') && document.querySelector('#session-select').options.length),'open visible row');
+  await eventually(()=>evaluate(()=>document.querySelector('#native-terminal .xterm') && document.querySelectorAll('#session-tabs [role=tab]').length),'open visible row');
   await click('.project-back');await eventually(()=>evaluate(value=>typeof projectView!=='undefined' && projectView.loaded && Math.abs(scrollY-value)<3,scroll),'restore scroll');
   await evaluate(()=>scrollTo(0,0));await sleep(100);await click('#project-switch');
   assert(await evaluate(()=>{const list=document.querySelector('.switch-results');return document.querySelector('#project-switcher').matches(':popover-open') && list.scrollHeight>list.clientHeight;}));

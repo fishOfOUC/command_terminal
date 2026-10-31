@@ -2,7 +2,7 @@
 use runbook_core::{
     dispatch,
     store::default_data_dir,
-    terminal::{SessionInfo, Snapshot, StartRequest, TerminalManager},
+    terminal::{ExecuteRequest, SessionInfo, Snapshot, StartRequest, TerminalManager},
     ApiError, Request, Store,
 };
 use serde_json::Value;
@@ -27,7 +27,24 @@ async fn terminal_start(
 ) -> Result<SessionInfo, ApiError> {
     let terminals = backend.terminals.clone();
     let store = backend.store.clone();
-    tauri::async_runtime::spawn_blocking(move || terminals.start(&store, request))
+    tauri::async_runtime::spawn_blocking(move || {
+        if request.command.is_none() {
+            terminals.open_interactive(&store, &request.project, request.cols, request.rows)
+        } else {
+            terminals.start(&store, request)
+        }
+    })
+    .await
+    .map_err(|e| ApiError::new("INTERNAL_ERROR", e.to_string()))?
+}
+#[tauri::command]
+async fn terminal_execute(
+    request: ExecuteRequest,
+    backend: State<'_, Backend>,
+) -> Result<SessionInfo, ApiError> {
+    let terminals = backend.terminals.clone();
+    let store = backend.store.clone();
+    tauri::async_runtime::spawn_blocking(move || terminals.execute(&store, request))
         .await
         .map_err(|e| ApiError::new("INTERNAL_ERROR", e.to_string()))?
 }
@@ -80,6 +97,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             api,
             terminal_start,
+            terminal_execute,
             terminal_list,
             terminal_read,
             terminal_write,

@@ -1,17 +1,24 @@
-/* 桌面终端布局。 */
+/* Persistent terminal tabs: one horizontal strip, with output actions kept visible. */
 #native-terminal { min-height:0; min-width:0; padding:20px 24px; overflow:hidden; }
 #native-terminal .xterm { height:100%; }
-.native-session-tools { display:flex; align-items:center; gap:6px; min-width:0; margin-left:12px; }
-.native-session-tools select { max-width:240px; width:200px; min-height:32px; font-size:12px; }
-.native-session-tools .icon-button { width:32px; height:32px; }
-html[data-runtime=desktop] .terminal-tabs { flex-wrap:wrap; align-content:center; gap:4px 16px; }
-html[data-runtime=desktop] .terminal-tab { border:0; padding:0; }
-html[data-runtime=desktop] .terminal-tab>span:not(.mono) { white-space:nowrap; }
-html[data-runtime=desktop] .terminal-actions { margin-left:auto; }
-html[data-runtime=desktop] .terminal-pane { grid-template-rows:76px 44px minmax(0,1fr) auto; }
-.command-danger { color:var(--negative); margin-right:auto; }
-@media(max-width:1150px) {
-  .native-session-tools select { width:140px; }
-  html[data-runtime=desktop] .terminal-actions .button-label { display:none; }
-  html[data-runtime=desktop] .terminal-tabs { padding-inline:16px; }
-}
+.native-session-tools { display:flex; align-items:center; flex:1; gap:6px; min-width:0; }
+.native-session-tools>#new-session { width:32px; height:36px; flex:none; }
+.session-tabs { display:flex; align-items:stretch; gap:4px; min-width:0; overflow-x:auto; scrollbar-width:thin; overscroll-behavior:contain; }
+.session-tab { display:flex; align-items:center; flex:none; min-width:80px; max-width:180px; border-bottom:2px solid transparent; border-radius:4px 4px 0 0; }
+.session-tab.is-active { background:var(--raised); border-bottom-color:var(--accent); }
+.session-tab>[role=tab] { display:flex; align-items:center; gap:8px; min-width:0; min-height:38px; padding:6px 8px 6px 12px; border:0; border-radius:4px; background:transparent; color:var(--muted); font-size:13px; }
+.session-tab.is-active>[role=tab] { color:var(--text); }
+.session-tab>[role=tab]>span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.session-tab-state { width:5px; height:5px; border:1px solid var(--faint); border-radius:50%; flex:none; }
+.session-tab-state.is-running { border-color:var(--accent); background:var(--accent); }
+.session-tab-state.is-finished { border-color:var(--negative); }
+.session-close { display:flex; align-items:center; justify-content:center; flex:none; min-width:28px; min-height:36px; padding:0; border:0; border-radius:4px; background:transparent; color:var(--faint); font-size:16px; }
+.session-close:hover { color:var(--text); background:var(--active); }
+.terminal-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; min-width:0; min-height:0; color:var(--muted); font-size:14px; }
+html[data-runtime=desktop] .terminal-tabs { align-items:center; gap:12px; padding-inline:16px; }
+html[data-runtime=desktop] .terminal-actions { flex:none; margin-left:auto; }
+html[data-runtime=desktop] .terminal-actions .button-label { display:none; }
+html[data-runtime=desktop] .terminal-pane { grid-template-rows:56px 44px minmax(0,1fr) auto; }
+.command-danger { color:var(--negative); }
+@media(max-width:1150px) { .session-tab { max-width:130px; } }
+@media(max-width:640px) { #native-terminal { padding:12px; } .session-tab>[role=tab],.session-close { min-height:44px; } html[data-runtime=desktop] .terminal-pane { grid-template-rows:56px 44px minmax(300px,1fr) auto; } }

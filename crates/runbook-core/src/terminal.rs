@@ -2,6 +2,7 @@ use crate::{
     model::{new_id, now},
     shell,
     store::check_revision,
+    terminal_protocol::{self, Decoder},
     ApiError, Result, Store,
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -30,6 +31,27 @@ pub struct StartRequest {
     pub cols: u16,
     pub rows: u16,
 }
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExecuteRequest {
+    pub session: String,
+    pub project: String,
+    pub command: String,
+    #[serde(default)]
+    pub values: BTreeMap<String, Value>,
+    pub if_revision: Option<u64>,
+}
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionInfo {
+    pub id: String,
+    pub command_id: String,
+    pub name: String,
+    pub started_at: u64,
+    pub finished_at: Option<u64>,
+    pub exit_code: Option<i64>,
+    pub stopped: bool,
+}
 type Writer = Box<dyn Write + Send>;
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,12 +66,16 @@ pub struct SessionInfo {
     pub finished: bool,
     pub stopped: bool,
     pub error: Option<String>,
+    pub interactive: bool,
+    pub ready: bool,
+    pub execution: Option<ExecutionInfo>,
 }
 struct Output {
     info: SessionInfo,
     chunks: VecDeque<(u64, Vec<u8>)>,
     next: u64,
     bytes: usize,
+    input_dirty: bool,
 }
 struct Session {
     output: Arc<Mutex<Output>>,
@@ -111,8 +137,118 @@ impl TerminalManager {
             shell::prepare(&project.path, rendered)?,
             request.cols,
             request.rows,
+            None,
         )
     }
+    pub fn open_interactive(
+        &self,
+        store: &Store,
+        project_id: &str,
+        cols: u16,
+        rows: u16,
+    ) -> Result<SessionInfo> {
+        let project = store.get(project_id)?;
+        if project.archived {
+            return Err(ApiError::new(
+                "PROJECT_ARCHIVED",
+                "Restore the project before opening its terminal",
+            ));
+        }
+        if !cfg!(windows) {
+            return Err(ApiError::new(
+                "UNSUPPORTED",
+                "Persistent desktop terminals currently require PowerShell on Windows",
+            ));
+        }
+        let token = new_id("prompt");
+        let mut shell = shell::prepare(&project.path, None)?;
+        let script = terminal_protocol::bootstrap(&token);
+        let bytes: Vec<u8> = script.encode_utf16().flat_map(u16::to_le_bytes).collect();
+        shell.args.extend([
+            "-NoExit".into(),
+            "-EncodedCommand".into(),
+            STANDARD.encode(bytes),
+        ]);
+        self.spawn(
+            project_id,
+            None,
+            "PowerShell".into(),
+            shell,
+            cols,
+            rows,
+            Some(token),
+        )
+    }
+    pub fn execute(&self, store: &Store, request: ExecuteRequest) -> Result<SessionInfo> {
+        let project = store.get(&request.project)?;
+        if project.archived {
+            return Err(ApiError::new(
+                "PROJECT_ARCHIVED",
+                "Restore the project before running a command",
+            ));
+        }
+        let command = project
+            .commands
+            .iter()
+            .find(|c| c.id == request.command)
+            .ok_or_else(|| ApiError::not_found("command", &request.command))?;
+        check_revision(request.if_revision, command.revision)?;
+        let input = terminal_protocol::input(&shell::render(command, &request.values)?);
+        if input.len() > 64 * 1024 {
+            return Err(ApiError::field("data", "Terminal input exceeds 64 KiB"));
+        }
+        let session = self.get(&request.session)?;
+        let mut writer = lock(&session.writer)?;
+        let writer = writer
+            .as_mut()
+            .ok_or_else(|| ApiError::new("SESSION_FINISHED", "This terminal process has exited"))?;
+        let mut output = lock(&session.output)?;
+        if output.info.project_id != request.project {
+            return Err(ApiError::new(
+                "PROJECT_MISMATCH",
+                "Terminal belongs to a different project",
+            ));
+        }
+        if !output.info.interactive || output.info.finished {
+            return Err(ApiError::new(
+                "SESSION_FINISHED",
+                "Open an interactive terminal before running a command",
+            ));
+        }
+        if !output.info.ready {
+            return Err(ApiError::new(
+                "SESSION_BUSY",
+                "终端正在运行程序或尚未准备好，请等待提示符后再执行。",
+            ));
+        }
+        if output.input_dirty {
+            return Err(ApiError::new(
+                "TERMINAL_INPUT_PENDING",
+                "终端中还有未提交的输入，请先执行或清空当前行。",
+            ));
+        }
+        output.info.ready = false;
+        output.info.execution = Some(ExecutionInfo {
+            id: new_id("execution"),
+            command_id: command.id.clone(),
+            name: command.name.clone(),
+            started_at: now(),
+            finished_at: None,
+            exit_code: None,
+            stopped: false,
+        });
+        let info = output.info.clone();
+        drop(output);
+        if let Err(error) = writer
+            .write_all(input.as_bytes())
+            .and_then(|_| writer.flush())
+        {
+            lock(&session.output)?.info.error = Some(format!("Terminal input failed: {error}"));
+            return Err(error.into());
+        }
+        Ok(info)
+    }
+    #[allow(clippy::too_many_arguments)]
     fn spawn(
         &self,
         project_id: &str,
@@ -121,6 +257,7 @@ impl TerminalManager {
         shell: shell::ShellCommand,
         cols: u16,
         rows: u16,
+        token: Option<String>,
     ) -> Result<SessionInfo> {
         let mut sessions = lock(&self.sessions)?;
         if sessions.len() >= SESSION_LIMIT {
@@ -161,12 +298,16 @@ impl TerminalManager {
             finished: false,
             stopped: false,
             error: None,
+            interactive: token.is_some(),
+            ready: false,
+            execution: None,
         };
         let output = Arc::new(Mutex::new(Output {
             info: info.clone(),
             chunks: VecDeque::new(),
             next: 0,
             bytes: 0,
+            input_dirty: false,
         }));
         let session = Arc::new(Session {
             output: output.clone(),
@@ -180,7 +321,7 @@ impl TerminalManager {
         sessions.insert(info.id.clone(), session.clone());
         // Reader owns a duplicate pipe. The waiter drains it before publishing finished=true.
         let reader_output = output.clone();
-        let reader_thread = thread::spawn(move || read_output(reader, reader_output));
+        let reader_thread = thread::spawn(move || read_output(reader, reader_output, token));
         thread::spawn(move || {
             let status = child.wait();
             drop(child);
@@ -200,6 +341,17 @@ impl TerminalManager {
                     Err(e) => state.info.error = Some(e.to_string()),
                 }
                 state.info.finished = true;
+                state.info.ready = false;
+                let exit_code = state.info.exit_code.map(i64::from);
+                if let Some(execution) = state
+                    .info
+                    .execution
+                    .as_mut()
+                    .filter(|e| e.finished_at.is_none())
+                {
+                    execution.finished_at = Some(now());
+                    execution.exit_code = exit_code;
+                }
             }
         });
         Ok(info)
@@ -247,6 +399,21 @@ impl TerminalManager {
         let writer = writer
             .as_mut()
             .ok_or_else(|| ApiError::new("SESSION_FINISHED", "This terminal process has exited"))?;
+        let mut output = lock(&session.output)?;
+        if output.info.interactive {
+            if data.contains(['\r', '\n']) {
+                output.input_dirty = false;
+                output.info.ready = false;
+            } else if data.contains('\u{3}') {
+                output.input_dirty = false;
+            } else if !data.is_empty()
+                && (!data.starts_with('\u{1b}') || data.starts_with("\u{1b}[200~"))
+                && output.info.ready
+            {
+                output.input_dirty = true;
+            }
+        }
+        drop(output);
         writer.write_all(data.as_bytes())?;
         writer.flush()?;
         Ok(())
@@ -268,6 +435,14 @@ impl TerminalManager {
                 return Ok(());
             }
             output.info.stopped = true;
+            if let Some(execution) = output
+                .info
+                .execution
+                .as_mut()
+                .filter(|e| e.finished_at.is_none())
+            {
+                execution.stopped = true;
+            }
         }
         if force {
             #[cfg(windows)]
@@ -281,6 +456,11 @@ impl TerminalManager {
     }
     pub fn close(&self, id: &str) -> Result<()> {
         self.stop(id, true)?;
+        // Release the console synchronously, including when the app is about to exit.
+        // The waiter may not get another turn before process shutdown.
+        let session = self.get(id)?;
+        lock(&session.writer)?.take();
+        lock(&session.master)?.take();
         lock(&self.sessions)?.remove(id);
         Ok(())
     }
@@ -306,17 +486,47 @@ fn terminal_size(cols: u16, rows: u16) -> Result<PtySize> {
         pixel_height: 0,
     })
 }
-fn read_output(mut reader: Box<dyn Read + Send>, output: Arc<Mutex<Output>>) {
+fn read_output(
+    mut reader: Box<dyn Read + Send>,
+    output: Arc<Mutex<Output>>,
+    token: Option<String>,
+) {
+    let mut decoder = token.as_deref().map(Decoder::new);
     let mut buffer = [0u8; 8192];
     loop {
         match reader.read(&mut buffer) {
             Ok(0) => break,
             Ok(n) => {
                 if let Ok(mut state) = output.lock() {
-                    let seq = state.next;
-                    state.next += 1;
-                    state.bytes += n;
-                    state.chunks.push_back((seq, buffer[..n].to_vec()));
+                    let (visible, prompts) = if let Some(decoder) = decoder.as_mut() {
+                        decoder.feed(&buffer[..n])
+                    } else {
+                        (buffer[..n].to_vec(), vec![])
+                    };
+                    for prompt in prompts {
+                        state.info.ready = true;
+                        state.input_dirty = false;
+                        state.info.cwd = prompt.cwd;
+                        if let Some(execution) = state
+                            .info
+                            .execution
+                            .as_mut()
+                            .filter(|e| e.finished_at.is_none())
+                        {
+                            execution.finished_at = Some(now());
+                            execution.exit_code = Some(if execution.stopped {
+                                130
+                            } else {
+                                prompt.exit_code
+                            });
+                        }
+                    }
+                    if !visible.is_empty() {
+                        let seq = state.next;
+                        state.next += 1;
+                        state.bytes += visible.len();
+                        state.chunks.push_back((seq, visible));
+                    }
                     while state.bytes > OUTPUT_LIMIT {
                         if let Some((_, old)) = state.chunks.pop_front() {
                             state.bytes -= old.len();
@@ -330,6 +540,17 @@ fn read_output(mut reader: Box<dyn Read + Send>, output: Arc<Mutex<Output>>) {
             }
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(_) => break,
+        }
+    }
+    if let Some(decoder) = decoder.as_mut() {
+        let rest = decoder.finish();
+        if !rest.is_empty() {
+            if let Ok(mut state) = output.lock() {
+                let seq = state.next;
+                state.next += 1;
+                state.bytes += rest.len();
+                state.chunks.push_back((seq, rest));
+            }
         }
     }
 }

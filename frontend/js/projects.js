@@ -40,7 +40,7 @@ function storageFeedback(message) {
 function sessionLabel(project) {
   const sessions=ProjectStore.sessions(project.id).filter(s=>!s.finished);
   if(!sessions.length)return '';
-  const jobs=sessions.filter(s=>s.commandId).length;
+  const jobs=sessions.filter(s=>s.execution ? !s.execution.finishedAt : s.commandId).length;
   return `<span class="project-session-state">${jobs ? `${jobs} 条命令运行中` : `${sessions.length} 个终端会话`}</span>`;
 }
 function rowHTML(p) {
@@ -191,7 +191,7 @@ async function refreshConfirmation() {
     $('#confirm-description').textContent=removing ? `将删除“${p.name}”及其 ${p.commands.length} 条命令，无法撤销。磁盘上的目录和文件不受影响。` : `将“${p.name}”移入已归档。它的 ${p.commands.length} 条命令和参数会保留，恢复后可继续使用。`;
     const sessions=ProjectStore.sessions(p.id),running=sessions.filter(s=>!s.finished);
     $('#confirm-session-summary').textContent=sessions.length ? `此操作将关闭 ${sessions.length} 个终端会话，其中 ${running.length} 个仍在运行。` : '当前没有终端会话。';
-    $('#confirm-sessions').innerHTML=sessions.map(s=>`<li><span>${escapeHTML(s.name)}</span><span>${s.finished ? '已结束' : s.commandId ? '命令运行中' : '交互终端'}</span></li>`).join('');$('#confirm-action').disabled=false;
+    $('#confirm-sessions').innerHTML=sessions.map(s=>`<li><span>${escapeHTML(s.execution?.name || s.name)}</span><span>${s.finished ? '已结束' : (s.execution ? !s.execution.finishedAt : s.commandId) ? '命令运行中' : '交互终端'}</span></li>`).join('');$('#confirm-action').disabled=false;
   } catch(error){$('#confirm-message').textContent=Runbook.message(error);$('#confirm-feedback').hidden=false;$('#confirm-session-summary').textContent='暂时无法检查会话，请重试。';}
 }
 function confirmProjectAction(project,action) {
