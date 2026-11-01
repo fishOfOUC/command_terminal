@@ -1,6 +1,6 @@
 /* 对话框 — 命令编辑器（表单 / 参数定义）与快捷键说明。 */
 dialog { color:var(--text); background:var(--ground); border:1px solid var(--control); border-radius:var(--radius); padding:0; width:min(720px,calc(100% - 32px)); max-height:calc(100dvh - 48px); box-shadow:0 24px 80px #0008; }
-dialog::backdrop { background:#000b; }
+dialog::backdrop { background:var(--dialog-backdrop); }
 .dialog-header { display:flex; align-items:flex-start; justify-content:space-between; padding:var(--s6) var(--s8); border-bottom:1px solid var(--border); gap:var(--s4); }
 .dialog-header h2 { font-size:20px; font-weight:600; }
 .dialog-header p { color:var(--muted); font-size:var(--fs-small); margin-top:var(--s1); }

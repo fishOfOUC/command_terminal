@@ -84,6 +84,17 @@ fn terminal_stop(id: String, force: bool, backend: State<'_, Backend>) -> Result
 fn terminal_close(id: String, backend: State<'_, Backend>) -> Result<(), ApiError> {
     backend.terminals.close(&id)
 }
+#[tauri::command]
+fn set_theme(theme: String, window: tauri::WebviewWindow) -> Result<(), String> {
+    let theme = match theme.as_str() {
+        "light" => tauri::Theme::Light,
+        "dark" => tauri::Theme::Dark,
+        _ => return Err("Unknown theme".into()),
+    };
+    window
+        .set_theme(Some(theme))
+        .map_err(|error| error.to_string())
+}
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -103,7 +114,8 @@ fn main() {
             terminal_write,
             terminal_resize,
             terminal_stop,
-            terminal_close
+            terminal_close,
+            set_theme
         ])
         .build(tauri::generate_context!())
         .expect("Could not initialize Runbook desktop")

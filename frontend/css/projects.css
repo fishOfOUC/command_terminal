@@ -81,7 +81,7 @@ a.project-name:hover { text-decoration:underline; text-underline-offset:4px; }
 .project-menu button:hover { background:var(--active); }
 .project-menu .od-icon { --od-icon-size:16px; color:var(--muted); }
 .project-menu .danger,.project-menu .danger .od-icon { color:var(--negative); }
-.danger-button { background:var(--negative); color:#291317; }
+.danger-button { background:var(--negative); color:var(--danger-ink); }
 #confirm-description { overflow-wrap:anywhere; color:var(--muted); font-size:14px; }
 .project-row:not(.is-archived) { cursor:pointer; }
 .project-row:hover,.project-row:focus-within,.project-row.is-highlighted { background:var(--raised); }

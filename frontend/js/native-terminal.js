@@ -1,7 +1,7 @@
 'use strict';
-// One persistent shell per tab; the xterm view reattaches to the selected session's output.
+// One persistent shell and cached xterm view per tab; switching reads only unseen output.
 const NativeTerminal = (()=>{
-  let terminal,fit,selected=null,sequence=0,polling=false,sessions=[],lastList=0,opening=false,selectionVersion=0;
+  let terminal,fit,views,selected=null,polling=false,sessions=[],lastList=0,opening=false,selectionVersion=0;
   let forceTimer;
   const labels=new Map();let nextLabel=1;
   const selectionKey=()=>`runbook.terminal.${activeProject.id}`;
@@ -42,25 +42,25 @@ const NativeTerminal = (()=>{
   async function refreshSessions() {sessions=await Runbook.invoke('terminal_list',{project:activeProject.id});tabs();lastList=Date.now();}
   async function select(id) {
     const info=sessions.find(s=>s.id===id);if(!info)return;
+    if(selected?.id===id && views.get(id)?.revealed){terminal.focus();return;}
     const version=++selectionVersion;
     while(polling)await new Promise(resolve=>setTimeout(resolve,10));
     if(version!==selectionVersion)return;
-    sequence=0;terminal.reset();status(info);
+    status(info);const view=views.prepare(id);terminal=view.terminal;fit=view.fit;
     try{sessionStorage.setItem(selectionKey(),id);}catch{}
     await poll();if(version!==selectionVersion)return;
-    fit.fit();if(!info.finished)await Runbook.invoke('terminal_resize',{id,cols:terminal.cols,rows:terminal.rows});
+    views.reveal(view);views.fit();if(!info.finished)await Runbook.invoke('terminal_resize',{id,cols:terminal.cols,rows:terminal.rows});
     terminal.focus();renderCommands();
     $('#session-tabs [aria-selected=true]')?.scrollIntoView({block:'nearest',inline:'nearest'});
   }
   async function poll() {
     if(polling || !selected)return;
-    polling=true;const id=selected.id;
+    const id=selected.id,view=views.get(id);if(!view)return;
+    polling=true;
     try {
-      const result=await Runbook.invoke('terminal_read',{id,after:sequence});if(selected?.id!==id)return;
-      if(result.truncated){terminal.reset();terminal.writeln('[较早输出已从会话缓冲区移除]');}
-      for(const chunk of result.chunks){if(selected?.id!==id)return;const bytes=Uint8Array.from(atob(chunk),c=>c.charCodeAt(0));await new Promise(resolve=>terminal.write(bytes,resolve));}
+      const result=await Runbook.invoke('terminal_read',{id,after:view.sequence});if(selected?.id!==id)return;
+      await views.append(view,result);
       if(selected?.id!==id)return;
-      sequence=result.nextSequence;
       const before=TerminalSessionState.view(selected),after=TerminalSessionState.view(result.session);
       const changed=before.running!==after.running || selected.execution?.id!==result.session.execution?.id || selected.finished!==result.session.finished;
       const index=sessions.findIndex(s=>s.id===id);if(index>=0)sessions[index]=result.session;
@@ -73,14 +73,15 @@ const NativeTerminal = (()=>{
   async function open() {
     if(opening)return;opening=true;$('#new-session').disabled=true;
     try {
-      const info=await Runbook.invoke('terminal_start',{request:{project:activeProject.id,command:null,values:{},ifRevision:null,cols:terminal.cols,rows:terminal.rows}});
+      const info=await Runbook.invoke('terminal_start',{request:{project:activeProject.id,command:null,values:{},ifRevision:null,cols:terminal?.cols || 100,rows:terminal?.rows || 30}});
       await refreshSessions();await select(info.id);return info;
     } finally {opening=false;$('#new-session').disabled=false;}
   }
   async function close(id) {
     const index=sessions.findIndex(s=>s.id===id),active=selected?.id===id;
     await Runbook.invoke('terminal_close',{id});
-    if(active){++selectionVersion;while(polling)await new Promise(resolve=>setTimeout(resolve,10));selected=null;sequence=0;terminal.reset();}
+    if(active){++selectionVersion;while(polling)await new Promise(resolve=>setTimeout(resolve,10));selected=null;terminal=null;fit=null;}
+    views.remove(id);
     await refreshSessions();
     if(active && sessions.length)await select(sessions[Math.min(index,sessions.length-1)].id);
     else if(active){try{sessionStorage.removeItem(selectionKey());}catch{}status(null);renderCommands();$('#new-session').focus();}
@@ -92,11 +93,9 @@ const NativeTerminal = (()=>{
       try {const saved=JSON.parse(sessionStorage.getItem(`${selectionKey()}.labels`));if(Array.isArray(saved?.labels)){for(const [id,label] of saved.labels)labels.set(id,label);nextLabel=Number(saved.next) || 1;}}catch{}
       $('.terminal-context>span').textContent='PowerShell · 本地';$('.terminal-note>span:first-child').textContent='命令在当前标签页执行 · 执行结束后可继续输入';
       $('#shortcuts .shortcut-row:first-child>span').textContent='在当前终端执行选中命令（终端外）';
-      terminal=new Terminal({fontFamily:'"Cascadia Code", Consolas, monospace',fontSize:13,lineHeight:1.35,cursorBlink:true,scrollback:10000,theme:{background:'#101112',foreground:'#f1f2f3',cursor:'#78d9ba',selectionBackground:'#1d302c',black:'#171719',red:'#ff9ca7',green:'#78d9ba',yellow:'#e3c58a',blue:'#9bbcf2',magenta:'#d9a6ca',cyan:'#98d8dd',white:'#f1f2f3'}});
-      fit=new FitAddon.FitAddon();terminal.loadAddon(fit);$('#native-terminal').hidden=false;terminal.open($('#native-terminal'));fit.fit();
-      terminal.onData(data=>{if(selected && !selected.finished)Runbook.action(()=>Runbook.invoke('terminal_write',{id:selected.id,data}));});
-      terminal.onResize(size=>{if(selected && !selected.finished)Runbook.action(()=>Runbook.invoke('terminal_resize',{id:selected.id,...size}));});
-      new ResizeObserver(()=>{try{fit.fit();}catch{}}).observe($('#native-terminal'));
+      views=createTerminalViews({container:$('#native-terminal'),theme:()=>RunbookTheme.terminal(),onData:(id,data)=>{if(sessions.some(s=>s.id===id && !s.finished))Runbook.action(()=>Runbook.invoke('terminal_write',{id,data}));},onResize:(id,size)=>{if(sessions.some(s=>s.id===id && !s.finished))Runbook.action(()=>Runbook.invoke('terminal_resize',{id,...size}));}});
+      new ResizeObserver(()=>{try{views.fit();}catch{}}).observe($('#native-terminal'));
+      window.addEventListener('runbook:theme-changed',()=>views.updateTheme());
       $('#new-session').addEventListener('click',()=>Runbook.action(open));$('#empty-new-session').addEventListener('click',()=>Runbook.action(open));
       $('#session-tabs').addEventListener('wheel',event=>{const list=$('#session-tabs');if(list.scrollWidth>list.clientWidth && Math.abs(event.deltaY)>Math.abs(event.deltaX)){event.preventDefault();list.scrollLeft+=event.deltaY;}},{passive:false});
       $('#session-tabs').addEventListener('click',event=>{const closing=event.target.closest('[data-close-session]');if(closing)Runbook.action(()=>close(closing.dataset.closeSession));else {const tab=event.target.closest('[data-session]');if(tab)Runbook.action(()=>select(tab.dataset.session));}});

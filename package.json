@@ -10,6 +10,7 @@
     "test": "cargo test -p runbook-core -p runbook-cli",
     "test:projects": "node scripts/project-ux-smoke.mjs",
     "test:terminal-state": "node --test scripts/terminal-state.test.cjs",
+    "test:ui": "node --test scripts/terminal-state.test.cjs scripts/theme.test.cjs",
     "check": "cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings",
     "tree": "node scripts/show-tree.mjs",
     "tauri": "tauri"
