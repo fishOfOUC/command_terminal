@@ -9,6 +9,7 @@ default-run = "runbook-desktop"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 tauri = { version = "2", features = [] }
 runbook-core = { path = "../crates/runbook-core" }
 serde_json = "1"

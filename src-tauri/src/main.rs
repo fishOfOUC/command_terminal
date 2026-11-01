@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use clap::Parser;
 use runbook_core::{
     dispatch,
     store::default_data_dir,
@@ -7,6 +8,13 @@ use runbook_core::{
 };
 use serde_json::Value;
 use tauri::{Manager, State};
+
+#[derive(Parser)]
+struct Startup {
+    /// Project selected by `runbook gui` in the shared data directory.
+    #[arg(long)]
+    project: Option<String>,
+}
 
 struct Backend {
     store: Store,
@@ -96,9 +104,35 @@ fn set_theme(theme: String, window: tauri::WebviewWindow) -> Result<(), String> 
         .map_err(|error| error.to_string())
 }
 fn main() {
+    let startup = Startup::parse();
+    let store = Store::open_application(
+        default_data_dir().expect("Could not locate Runbook data directory"),
+    )
+    .expect("Could not open application-local Runbook data directory");
+    let mut context = tauri::generate_context!();
+    // All Tauri state, including WebView2 localStorage/cache, follows the portable database.
+    context.config_mut().app.app_directories_override =
+        Some(tauri::utils::config::AppDirectoriesOverride::Root(
+            store
+                .path()
+                .parent()
+                .expect("database parent")
+                .to_path_buf(),
+        ));
+    if let Some(id) = startup.project {
+        runbook_core::model::validate_id(&id).expect("Invalid startup project ID");
+        if let Some(window) = context
+            .config_mut()
+            .app
+            .windows
+            .iter_mut()
+            .find(|w| w.label == "main")
+        {
+            window.url = tauri::WebviewUrl::App(format!("index.html?project={id}").into());
+        }
+    }
     tauri::Builder::default()
-        .setup(|app| {
-            let store = Store::open(default_data_dir()?)?;
+        .setup(move |app| {
             app.manage(Backend {
                 store,
                 terminals: TerminalManager::default(),
@@ -117,7 +151,7 @@ fn main() {
             terminal_close,
             set_theme
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("Could not initialize Runbook desktop")
         .run(|handle, event| {
             if matches!(event, tauri::RunEvent::Exit) {

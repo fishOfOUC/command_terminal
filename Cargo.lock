@@ -2719,6 +2719,7 @@ dependencies = [
  "runbook-core",
  "serde_json",
  "tempfile",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2742,6 +2743,7 @@ dependencies = [
 name = "runbook-desktop"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "runbook-core",
  "serde",
  "serde_json",

@@ -14,19 +14,22 @@ use std::{
     process::ExitCode,
     time::{Duration, Instant},
 };
+mod gui;
+#[cfg(windows)]
+mod gui_handles;
 
 #[derive(Parser)]
 #[command(
     name = "runbook",
     version,
     about = "Manage Runbook projects and commands. JSON by default; no GUI or interactive prompts required.",
-    after_help = "AI quick start: runbook schema\nJSON stdin:    runbook api --input -\nExample:       runbook command list --project PROJECT_ID\nUpdate safely: runbook command update --project PROJECT_ID --id COMMAND_ID --if-revision 1 --base 'npm run build'\nAll regular results/errors are one JSON envelope on stdout. See docs/CLI.md."
+    after_help = "AI quick start: runbook schema --list\nTask schema:   runbook schema --op command_create\nJSON stdin:    runbook api --input -\nExample:       runbook command list --project PROJECT_ID\nUpdate safely: runbook command update --project PROJECT_ID --id COMMAND_ID --if-revision 1 --base 'npm run build'\nAll regular results/errors are one JSON envelope on stdout. See docs/CLI.md."
 )]
 struct Cli {
     #[arg(
         long,
         global = true,
-        help = "Override RUNBOOK_DATA_DIR and the system-local Runbook directory"
+        help = "Override RUNBOOK_DATA_DIR and the data directory beside the application"
     )]
     data_dir: Option<PathBuf>,
     #[arg(long, global = true, help = "Indent JSON output")]
@@ -36,10 +39,22 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Action {
+    /// Open the desktop for this directory (or PATH); reuse a containing project or create one.
+    Gui {
+        /// Existing directory: current directory by default; relative, absolute or home-relative.
+        path: Option<PathBuf>,
+    },
     /// Describe the active data directory and runtime.
     Info,
     /// JSON schemas, request operations, exit codes and AI usage conventions.
-    Schema,
+    Schema {
+        /// Return only this JSON API operation and its referenced definitions.
+        #[arg(long = "op", conflicts_with = "list")]
+        operation: Option<String>,
+        /// List JSON API operation names without the full schemas.
+        #[arg(long)]
+        list: bool,
+    },
     /// Execute a structured request. Does not accept terminal execution operations.
     Api {
         #[arg(long, default_value = "-")]
@@ -268,8 +283,13 @@ fn values(file: Option<String>) -> Result<BTreeMap<String, Value>> {
 }
 fn request(action: Action) -> Result<Request> {
     let value = match action {
+        Action::Gui { .. } => {
+            return Err(ApiError::new("INVALID_ARGUMENT", "Unexpected GUI request"))
+        }
         Action::Info => json!({"op":"info"}),
-        Action::Schema => json!({"op":"schema"}),
+        Action::Schema { operation, list } => {
+            json!({"op":"schema","operation":operation,"list":list})
+        }
         Action::Api { input } => read_json(&input)?,
         Action::Project(action) => match action {
             ProjectAction::Add {
@@ -441,8 +461,10 @@ fn run(
     ))
 }
 fn execute(cli: Cli) -> Result<(Value, u8)> {
-    let dir = cli.data_dir.map(Ok).unwrap_or_else(default_data_dir)?;
-    let store = Store::open(dir)?;
+    if let Action::Gui { path } = cli.action {
+        let dir = cli.data_dir.map(Ok).unwrap_or_else(default_data_dir)?;
+        return Ok((gui::open(dir, path)?, 0));
+    }
     if let Action::Command(CommandAction::Run {
         project,
         id,
@@ -451,9 +473,20 @@ fn execute(cli: Cli) -> Result<(Value, u8)> {
         timeout_ms,
     }) = cli.action
     {
+        let dir = cli.data_dir.map(Ok).unwrap_or_else(default_data_dir)?;
+        let store = Store::open_application(dir)?;
         return run(&store, project, id, values, if_revision, timeout_ms);
     }
-    Ok((dispatch(&store, request(cli.action)?)?, 0))
+    let request = request(cli.action)?;
+    if let Request::Schema { operation, list } = request {
+        return Ok((
+            runbook_core::schema::describe(operation.as_deref(), list)?,
+            0,
+        ));
+    }
+    let dir = cli.data_dir.map(Ok).unwrap_or_else(default_data_dir)?;
+    let store = Store::open_application(dir)?;
+    Ok((dispatch(&store, request)?, 0))
 }
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {

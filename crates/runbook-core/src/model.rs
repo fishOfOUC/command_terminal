@@ -4,6 +4,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
+pub(crate) const ID_MAX: usize = 100;
+pub(crate) const NAME_MAX: usize = 60;
+pub(crate) const DESCRIPTION_MAX: usize = 1000;
+pub(crate) const VALUE_MAX: usize = 16384;
+pub(crate) const MAX_PARAMETERS: usize = 64;
+
 pub fn now() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -15,7 +21,7 @@ pub fn new_id(prefix: &str) -> String {
 }
 pub fn validate_id(id: &str) -> Result<()> {
     if id.is_empty()
-        || id.len() > 100
+        || id.len() > ID_MAX
         || !id
             .bytes()
             .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_')
@@ -43,10 +49,14 @@ pub fn text(value: &str, field: &str, max: usize, required: bool) -> Result<()> 
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[schemars(transform = crate::schema::parameter)]
 pub struct Parameter {
+    #[schemars(transform = crate::schema::id)]
     pub id: String,
+    #[schemars(transform = crate::schema::name)]
     pub label: String,
     #[serde(default)]
+    #[schemars(regex(pattern = r"^(?:|-{1,2}[A-Za-z][A-Za-z0-9_-]*)(?![\s\S])"))]
     pub flag: String,
     #[serde(rename = "type")]
     pub kind: ParameterType,
@@ -61,6 +71,7 @@ pub struct Parameter {
 }
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
+#[schemars(inline)]
 pub enum ParameterType {
     Text,
     Number,
@@ -70,12 +81,17 @@ pub enum ParameterType {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Command {
+    #[schemars(transform = crate::schema::id)]
     pub id: String,
+    #[schemars(transform = crate::schema::name)]
     pub name: String,
+    #[schemars(transform = crate::schema::base)]
     pub base: String,
     #[serde(default)]
+    #[schemars(transform = crate::schema::description)]
     pub description: String,
     #[serde(default)]
+    #[schemars(length(max = MAX_PARAMETERS))]
     pub params: Vec<Parameter>,
     pub revision: u64,
     pub created_at: u64,
@@ -84,10 +100,13 @@ pub struct Command {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Project {
+    #[schemars(transform = crate::schema::id)]
     pub id: String,
+    #[schemars(transform = crate::schema::name)]
     pub name: String,
     pub path: String,
     #[serde(default)]
+    #[schemars(transform = crate::schema::description)]
     pub description: String,
     #[serde(default)]
     pub starred: bool,
@@ -103,10 +122,13 @@ pub struct Project {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProjectCreate {
+    #[schemars(transform = crate::schema::id)]
     pub id: Option<String>,
+    #[schemars(transform = crate::schema::name)]
     pub name: String,
     pub path: String,
     #[serde(default)]
+    #[schemars(transform = crate::schema::description)]
     pub description: String,
     #[serde(default)]
     pub starred: bool,
@@ -114,8 +136,10 @@ pub struct ProjectCreate {
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProjectPatch {
+    #[schemars(transform = crate::schema::name)]
     pub name: Option<String>,
     pub path: Option<String>,
+    #[schemars(transform = crate::schema::description)]
     pub description: Option<String>,
     pub starred: Option<bool>,
     pub archived: Option<bool>,
@@ -123,29 +147,38 @@ pub struct ProjectPatch {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CommandCreate {
+    #[schemars(transform = crate::schema::id)]
     pub id: Option<String>,
+    #[schemars(transform = crate::schema::command_name)]
     pub name: String,
+    #[schemars(transform = crate::schema::command_base)]
     pub base: String,
     #[serde(default)]
+    #[schemars(transform = crate::schema::description)]
     pub description: String,
     #[serde(default)]
+    #[schemars(length(max = MAX_PARAMETERS))]
     pub params: Vec<Parameter>,
 }
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CommandPatch {
+    #[schemars(transform = crate::schema::command_name)]
     pub name: Option<String>,
+    #[schemars(transform = crate::schema::command_base)]
     pub base: Option<String>,
+    #[schemars(transform = crate::schema::description)]
     pub description: Option<String>,
+    #[schemars(length(max = MAX_PARAMETERS))]
     pub params: Option<Vec<Parameter>>,
 }
 
 pub fn validate_command(command: &Command) -> Result<()> {
     validate_id(&command.id)?;
-    text(&command.name, "name", 60, true)?;
-    text(&command.base, "base", 16384, true)?;
-    text(&command.description, "description", 1000, false)?;
-    if command.params.len() > 64 {
+    text(&command.name, "name", NAME_MAX, true)?;
+    text(&command.base, "base", VALUE_MAX, true)?;
+    text(&command.description, "description", DESCRIPTION_MAX, false)?;
+    if command.params.len() > MAX_PARAMETERS {
         return Err(ApiError::field(
             "params",
             "At most 64 parameters are supported",
@@ -158,7 +191,7 @@ pub fn validate_command(command: &Command) -> Result<()> {
         if !ids.insert(&p.id) {
             return Err(ApiError::field("params.id", "Duplicate parameter ID"));
         }
-        text(&p.label, "params.label", 60, true)?;
+        text(&p.label, "params.label", NAME_MAX, true)?;
         if !p.flag.is_empty() {
             let rest = p.flag.trim_start_matches('-');
             let prefix = p.flag.len() - rest.len();
@@ -218,7 +251,7 @@ pub fn validate_value(p: &Parameter, value: &Value, executing: bool) -> Result<(
         return Err(err("Parameter must be a string or number"));
     }
     let s = value_text(value);
-    text(&s, "parameter.value", 16384, false)?;
+    text(&s, "parameter.value", VALUE_MAX, false)?;
     if s.trim().is_empty() {
         return if executing && p.required {
             Err(err("Required parameter is empty"))

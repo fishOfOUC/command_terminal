@@ -1,5 +1,6 @@
 pub mod error;
 pub mod model;
+pub mod schema;
 pub mod service;
 pub mod shell;
 pub mod store;

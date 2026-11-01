@@ -103,7 +103,35 @@ fn add_project_uses_real_directory_name_and_preserves_existing_projects() {
     assert_eq!(code, 2);
     assert_eq!(missing["error"]["details"]["field"], "path");
     let (_, list) = cli(&db, &["project", "list"], None);
-    assert_eq!(list["data"]["total"], 2);
+    assert_eq!(list["data"]["total"], 3); // includes the built-in Runbook project
+}
+#[test]
+fn gui_errors_are_json_and_do_not_create_projects_or_missing_directories() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = temp.path().join("db");
+    let (code, error) = cli_at(&db, &["gui", "missing"], None, Some(temp.path()));
+    assert_eq!(code, 2, "{error}");
+    assert_eq!(error["error"]["details"]["field"], "path");
+    assert!(!temp.path().join("missing").exists());
+    assert!(!db.exists());
+
+    // An independently copied CLI reports missing desktop packaging before any database writes.
+    let standalone = temp
+        .path()
+        .join(format!("runbook{}", std::env::consts::EXE_SUFFIX));
+    std::fs::copy(env!("CARGO_BIN_EXE_runbook"), &standalone).unwrap();
+    let out = Command::new(standalone)
+        .current_dir(temp.path())
+        .arg("--data-dir")
+        .arg(&db)
+        .arg("gui")
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    assert!(out.stderr.is_empty());
+    let error: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(error["error"]["code"], "GUI_NOT_FOUND");
+    assert!(!db.exists());
 }
 #[test]
 fn cli_machine_contract_crud_stdin_schema_and_errors() {
@@ -213,6 +241,89 @@ fn cli_machine_contract_crud_stdin_schema_and_errors() {
     assert_eq!(code, 2);
     assert_eq!(error["error"]["code"], "INVALID_JSON");
 }
+#[test]
+fn schema_discovery_is_database_independent_and_scoped() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = temp.path().join("must-not-be-created");
+    let (code, full) = cli(&db, &["schema"], None);
+    assert_eq!(code, 0, "{full}");
+    assert!(full["data"]["projectSchema"].is_object());
+    assert!(full["data"]["commandSchema"].is_object());
+    assert!(!db.exists(), "schema must not create a data directory");
+
+    // Discovery must work even when this data directory cannot be opened.
+    let blocked = temp.path().join("regular-file");
+    std::fs::write(&blocked, "leave this file unchanged").unwrap();
+    let (code, list) = cli(&blocked, &["schema", "--list"], None);
+    assert_eq!(code, 0, "{list}");
+    let operations = list["data"]["operations"].as_array().unwrap();
+    assert!(operations.contains(&json!("command_create")));
+    assert!(!operations.contains(&json!("command_run")));
+    assert!(list.to_string().len() < full.to_string().len() / 10);
+    for operation in operations {
+        let operation = operation.as_str().unwrap();
+        let (code, scoped) = cli(&blocked, &["schema", "--op", operation], None);
+        assert_eq!(code, 0, "{scoped}");
+        assert_eq!(
+            scoped["data"]["requestSchema"]["properties"]["op"]["const"],
+            operation
+        );
+        assert!(scoped["data"].get("projectSchema").is_none());
+        assert!(scoped["data"].get("commandSchema").is_none());
+        let (code, api) = cli(
+            &blocked,
+            &["api", "--input", "-"],
+            Some(json!({
+                "op":"schema", "operation":operation
+            })),
+        );
+        assert_eq!(code, 0, "{api}");
+        assert_eq!(api, scoped);
+    }
+    let (code, api) = cli(
+        &blocked,
+        &["api", "--input", "-"],
+        Some(json!({"op":"schema"})),
+    );
+    assert_eq!(code, 0, "{api}");
+    assert_eq!(api, full);
+    let (code, api_list) = cli(
+        &blocked,
+        &["api", "--input", "-"],
+        Some(json!({"op":"schema","list":true})),
+    );
+    assert_eq!(code, 0, "{api_list}");
+    assert_eq!(api_list, list);
+    assert_eq!(
+        std::fs::read_to_string(blocked).unwrap(),
+        "leave this file unchanged"
+    );
+}
+
+#[test]
+fn schema_invalid_filters_are_json_errors_without_database_access() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = temp.path().join("must-not-be-created");
+    for args in [
+        vec!["schema", "--op", "unknown"],
+        vec!["schema", "--op", "info", "--list"],
+    ] {
+        let (code, response) = cli(&db, &args, None);
+        assert_eq!(code, 2, "{response}");
+        assert_eq!(response["error"]["code"], "INVALID_ARGUMENT");
+    }
+    let (code, response) = cli(
+        &db,
+        &["api", "--input", "-"],
+        Some(json!({
+            "op":"schema", "operation":"info", "list":true
+        })),
+    );
+    assert_eq!(code, 2, "{response}");
+    assert_eq!(response["error"]["code"], "INVALID_ARGUMENT");
+    assert!(!db.exists());
+}
+
 #[test]
 fn explicit_execution_reports_real_exit_code_and_timeout() {
     let temp = tempfile::tempdir().unwrap();

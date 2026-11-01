@@ -4,6 +4,7 @@ use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
+mod bootstrap;
 
 #[derive(Clone)]
 pub struct Store {
@@ -13,14 +14,15 @@ pub fn default_data_dir() -> Result<PathBuf> {
     if let Some(dir) = std::env::var_os("RUNBOOK_DATA_DIR") {
         return Ok(PathBuf::from(dir));
     }
-    dirs::data_local_dir()
-        .map(|p| p.join("Runbook"))
-        .ok_or_else(|| {
-            ApiError::new(
-                "IO_ERROR",
-                "Could not determine local application data directory",
-            )
-        })
+    Ok(application_dir()?.join("data"))
+}
+/// Resolve from the executable, never the caller's working directory or user profile.
+pub fn application_dir() -> Result<PathBuf> {
+    let executable = std::env::current_exe()?;
+    let parent = executable.parent().ok_or_else(|| {
+        ApiError::new("IO_ERROR", "Could not determine the application directory")
+    })?;
+    dunce::canonicalize(parent).map_err(Into::into)
 }
 pub fn directory(path: &str) -> Result<String> {
     let expanded = if path == "~" {
@@ -59,7 +61,7 @@ impl Store {
     pub fn open(dir: impl AsRef<Path>) -> Result<Self> {
         std::fs::create_dir_all(dir.as_ref())?;
         let s = Self {
-            path: dir.as_ref().join("runbook.db"),
+            path: dunce::canonicalize(dir.as_ref())?.join("runbook.db"),
         };
         let c = s.connect()?;
         c.pragma_update(None, "journal_mode", "WAL")?;
@@ -89,6 +91,9 @@ impl Store {
     }
     pub fn list(&self) -> Result<Vec<Project>> {
         let c = self.connect()?;
+        Self::list_from(&c)
+    }
+    fn list_from(c: &Connection) -> Result<Vec<Project>> {
         let mut stmt = c.prepare("SELECT document FROM projects ORDER BY id")?;
         let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
         rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
@@ -143,12 +148,20 @@ impl Store {
         Ok(())
     }
     pub fn create_project(&self, input: ProjectCreate) -> Result<Project> {
-        text(&input.name, "name", 60, true)?;
-        text(&input.description, "description", 1000, false)?;
+        let p = Self::new_project(input)?;
+        let mut c = self.connect()?;
+        let tx = c.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        Self::save(&tx, &p, true)?;
+        tx.commit()?;
+        Ok(p)
+    }
+    fn new_project(input: ProjectCreate) -> Result<Project> {
+        text(&input.name, "name", NAME_MAX, true)?;
+        text(&input.description, "description", DESCRIPTION_MAX, false)?;
         let id = input.id.unwrap_or_else(|| new_id("project"));
         validate_id(&id)?;
         let t = now();
-        let p = Project {
+        Ok(Project {
             id,
             name: input.name.trim().into(),
             path: directory(&input.path)?,
@@ -160,12 +173,59 @@ impl Store {
             updated_at: t,
             revision: 1,
             commands: vec![],
-        };
+        })
+    }
+    /// Open the closest containing project, or register this existing directory.
+    /// Selection and creation share a write transaction so concurrent openers reuse one project.
+    pub fn open_project_directory(&self, path: &str) -> Result<(Project, bool)> {
+        let canonical = directory(path)?;
+        let target = PathBuf::from(path_key(&canonical));
         let mut c = self.connect()?;
         let tx = c.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        Self::save(&tx, &p, true)?;
+        let matched = Self::list_from(&tx)?
+            .into_iter()
+            .filter_map(|p| {
+                let root = PathBuf::from(path_key(&p.path));
+                target
+                    .starts_with(&root)
+                    .then(|| (root.components().count(), p))
+            })
+            .max_by_key(|(depth, _)| *depth)
+            .map(|(_, p)| p);
+        let created = matched.is_none();
+        let mut p = match matched {
+            Some(p) => p,
+            None => {
+                let name = Path::new(&canonical)
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| {
+                        let root = canonical.trim_end_matches(['\\', '/']);
+                        if root.is_empty() {
+                            canonical.clone()
+                        } else {
+                            root.to_owned()
+                        }
+                    });
+                Self::new_project(ProjectCreate {
+                    id: None,
+                    name: name.chars().take(NAME_MAX).collect(),
+                    path: canonical,
+                    description: String::new(),
+                    starred: false,
+                })?
+            }
+        };
+        if created {
+            Self::save(&tx, &p, true)?;
+        } else if p.archived {
+            p.archived = false;
+            p.revision += 1;
+            p.updated_at = now();
+            Self::save(&tx, &p, false)?;
+        }
         tx.commit()?;
-        Ok(p)
+        Ok((p, created))
     }
     pub fn mutate<T>(
         &self,
@@ -192,14 +252,14 @@ impl Store {
     ) -> Result<Project> {
         self.mutate(id, expected, |p| {
             if let Some(name) = patch.name {
-                text(&name, "name", 60, true)?;
+                text(&name, "name", NAME_MAX, true)?;
                 p.name = name.trim().into();
             }
             if let Some(path) = patch.path {
                 p.path = directory(&path)?;
             }
             if let Some(d) = patch.description {
-                text(&d, "description", 1000, false)?;
+                text(&d, "description", DESCRIPTION_MAX, false)?;
                 p.description = d;
             }
             if let Some(v) = patch.starred {

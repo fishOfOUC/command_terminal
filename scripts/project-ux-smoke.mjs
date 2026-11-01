@@ -4,7 +4,12 @@ import {join} from 'node:path';
 import {desktopTest,sleep} from './native-test-harness.mjs';
 
 await desktopTest(async({dir,cli,evaluate,send,eventually,click,fill,screenshot,snapshot,pass})=>{
-  await eventually(()=>evaluate(()=>typeof projectView!=='undefined' && projectView.loaded),'empty library loaded');
+  await eventually(()=>evaluate(()=>typeof projectView!=='undefined' && projectView.loaded),'library loaded');
+  const home=(await cli(['project','list'])).data.items;
+  assert.equal(home.length,1);assert.equal(home[0].name,'Runbook');assert.equal(home[0].commands.length,2);
+  pass('fresh desktop includes the Runbook everyday commands project');
+  await cli(['project','delete','--id',home[0].id]);
+  await eventually(()=>evaluate(()=>document.querySelectorAll('#project-list tr').length===0),'empty library after user deletion');
   assert.equal(await evaluate(()=>document.querySelector('#empty-title').textContent),'从第一个项目开始');
   pass('native empty state and successful load');
   const work=join(dir,'真实项目 with spaces'),other=join(dir,'second'),third=join(dir,'third');

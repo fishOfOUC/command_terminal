@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 
 // Prune generated/dependency directories before reading them; never follow links.
 const excludedDirectories = new Set([
-  '.git', 'node_modules', 'target', 'dist', 'build', 'out', 'coverage',
+  '.git', 'node_modules', 'target', 'dist', 'release', 'build', 'out', 'coverage',
   'vendor', 'gen', '.qa', '.taste-skill', 'local-only', 'examples',
   '.cache', '.turbo', '.next', '.nuxt', '.output', '.svelte-kit',
   '.venv', 'venv', '__pycache__', '.pytest_cache', 'bin', 'obj'

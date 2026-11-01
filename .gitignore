@@ -1,5 +1,6 @@
 /target/
 /dist/
+/release/
 /node_modules/
 /frontend/vendor/
 /src-tauri/gen/

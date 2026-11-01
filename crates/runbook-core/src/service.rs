@@ -1,5 +1,5 @@
 use crate::{model::*, shell, ApiError, Result, Store};
-use schemars::{schema_for, JsonSchema};
+use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -9,7 +9,12 @@ use std::collections::BTreeMap;
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Request {
     Info,
-    Schema,
+    #[schemars(transform = crate::schema::discovery_request)]
+    Schema {
+        operation: Option<String>,
+        #[serde(default)]
+        list: bool,
+    },
     ProjectList {
         #[serde(default)]
         query: Option<String>,
@@ -74,21 +79,7 @@ pub fn dispatch(store: &Store, request: Request) -> Result<Value> {
         Request::Info => Ok(
             json!({"version":env!("CARGO_PKG_VERSION"),"databasePath":store.path(),"schemaVersion":1,"shell":if cfg!(windows){"powershell"}else{"posix"}}),
         ),
-        Request::Schema => Ok(json!({
-            "protocolVersion":1,
-            "requestSchema":schema_for!(Request),
-            "projectSchema":schema_for!(Project),
-            "commandSchema":schema_for!(Command),
-            "conventions":{
-                "output":"One JSON envelope on stdout: {schemaVersion:1,ok:true,data:...} or {schemaVersion:1,ok:false,error:{code,message,details}}",
-                "input":"runbook api --input - accepts one request object on stdin. --input FILE reads UTF-8 JSON (UTF-8 BOM allowed).",
-                "updates":"Partial field patches; omitted fields stay unchanged. params replaces the complete parameter list. IDs and timestamps are read-only.",
-                "concurrency":"Use ifRevision from the last get result. REVISION_CONFLICT means fetch again and reapply your patch.",
-                "execution":"CRUD/render never executes a command. command run explicitly executes a stored command in the project directory.",
-                "exitCodes":{"0":"Success","1":"I/O, database, terminal or execution error","2":"Arguments, JSON or validation error","3":"Not found","4":"Duplicate ID/path or revision conflict","10":"Executed command returned a non-zero exit code","124":"Execution timed out"},
-                "defaultDataDirectory":"RUNBOOK_DATA_DIR, otherwise OS local app data / Runbook. --data-dir overrides this for the CLI."
-            }
-        })),
+        Request::Schema { operation, list } => crate::schema::describe(operation.as_deref(), list),
         Request::ProjectList { query, archived } => {
             let needle = query.unwrap_or_default().to_lowercase();
             let rows: Vec<_> = store

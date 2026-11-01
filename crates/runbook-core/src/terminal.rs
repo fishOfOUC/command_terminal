@@ -131,6 +131,7 @@ impl TerminalManager {
             (None, "PowerShell".into())
         };
         self.spawn(
+            store,
             &request.project,
             request.command.as_deref(),
             name,
@@ -170,6 +171,7 @@ impl TerminalManager {
             STANDARD.encode(bytes),
         ]);
         self.spawn(
+            store,
             project_id,
             None,
             "PowerShell".into(),
@@ -251,6 +253,7 @@ impl TerminalManager {
     #[allow(clippy::too_many_arguments)]
     fn spawn(
         &self,
+        store: &Store,
         project_id: &str,
         command_id: Option<&str>,
         name: String,
@@ -273,6 +276,16 @@ impl TerminalManager {
         cmd.cwd(&shell.cwd);
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
+        // Downloaded copies can use the bundled CLI without a global PATH registration.
+        // Explicit data-directory selections must also reach CLI calls inside the terminal.
+        let inherited = std::env::var_os("PATH").unwrap_or_default();
+        let paths = std::iter::once(crate::store::application_dir()?)
+            .chain(std::env::split_paths(&inherited));
+        cmd.env("PATH", std::env::join_paths(paths).map_err(pty_error)?);
+        cmd.env(
+            "RUNBOOK_DATA_DIR",
+            store.path().parent().expect("database parent"),
+        );
         let mut child = pair.slave.spawn_command(cmd).map_err(pty_error)?;
         #[cfg(windows)]
         let job = match job::Job::assign(child.process_id()) {
@@ -574,7 +587,9 @@ mod job {
                 }
                 let job = Self(OwnedHandle::from_raw_handle(raw));
                 let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
-                limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+                // Ordinary children stay managed. `runbook gui` may explicitly detach a new app.
+                limits.BasicLimitInformation.LimitFlags =
+                    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK;
                 if SetInformationJobObject(
                     raw,
                     JobObjectExtendedLimitInformation,
