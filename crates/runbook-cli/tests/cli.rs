@@ -8,6 +8,23 @@ use std::{
 fn cli(dir: &Path, args: &[&str], input: Option<Value>) -> (i32, Value) {
     cli_at(dir, args, input, None)
 }
+
+#[test]
+fn tui_requires_a_terminal_without_creating_a_database_or_emitting_escape_codes() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = temp.path().join("unused");
+    let out = Command::new(env!("CARGO_BIN_EXE_runbook"))
+        .arg("--data-dir")
+        .arg(&db)
+        .arg("tui")
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    assert!(out.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("runbook tui"));
+    assert!(!out.stderr.contains(&0x1b));
+    assert!(!db.exists());
+}
 fn cli_at(dir: &Path, args: &[&str], input: Option<Value>, cwd: Option<&Path>) -> (i32, Value) {
     let mut command = Command::new(env!("CARGO_BIN_EXE_runbook"));
     if let Some(cwd) = cwd {

@@ -17,12 +17,13 @@ use std::{
 mod gui;
 #[cfg(windows)]
 mod gui_handles;
+mod tui;
 
 #[derive(Parser)]
 #[command(
     name = "runbook",
     version,
-    about = "Manage Runbook projects and commands. JSON by default; no GUI or interactive prompts required.",
+    about = "Manage Runbook projects and commands. JSON by default; use 'tui' to select and copy commands interactively.",
     after_help = "AI quick start: runbook schema --list\nTask schema:   runbook schema --op command_create\nJSON stdin:    runbook api --input -\nExample:       runbook command list --project PROJECT_ID\nUpdate safely: runbook command update --project PROJECT_ID --id COMMAND_ID --if-revision 1 --base 'npm run build'\nAll regular results/errors are one JSON envelope on stdout. See docs/CLI.md."
 )]
 struct Cli {
@@ -39,6 +40,12 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Action {
+    /// Browse saved commands in the terminal and copy to the clipboard.
+    Tui {
+        /// Start with this project ID selected.
+        #[arg(long)]
+        project: Option<String>,
+    },
     /// Open the desktop for this directory (or PATH); reuse a containing project or create one.
     Gui {
         /// Existing directory: current directory by default; relative, absolute or home-relative.
@@ -283,8 +290,11 @@ fn values(file: Option<String>) -> Result<BTreeMap<String, Value>> {
 }
 fn request(action: Action) -> Result<Request> {
     let value = match action {
-        Action::Gui { .. } => {
-            return Err(ApiError::new("INVALID_ARGUMENT", "Unexpected GUI request"))
+        Action::Gui { .. } | Action::Tui { .. } => {
+            return Err(ApiError::new(
+                "INVALID_ARGUMENT",
+                "Unexpected interactive request",
+            ))
         }
         Action::Info => json!({"op":"info"}),
         Action::Schema { operation, list } => {
@@ -515,6 +525,16 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    // Interactive output is separate from the machine-readable JSON protocol.
+    if let Action::Tui { project } = &cli.action {
+        return match tui::run(cli.data_dir, project.as_deref()) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::from(error.exit_code())
+            }
+        };
+    }
     let pretty = cli.pretty;
     let (envelope, code) = match execute(cli) {
         Ok((data, code)) => (json!({"schemaVersion":1,"ok":code==0,"data":data}), code),

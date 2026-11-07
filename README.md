@@ -23,7 +23,10 @@
 
 ## 使用 CLI
 
+在终端运行 `runbook tui`，即可按项目选择命令并复制到剪贴板。鼠标点击选择、双击命令复制，滚轮在指针所在区域滚动，顶部提供可点击的“复制／参数／退出”按钮。也可用方向键选择，Tab 或左右键切换项目／命令，`/` 搜索，Enter 复制完整命令并退出，`c` 复制后继续选择，`e` 临时填写参数，`q` 退出。支持中文搜索、参数校验与完整命令预览；不会执行命令。启动时优先选中当前目录所属的项目，也可用 `runbook tui --project PROJECT_ID` 指定项目。详见 [TUI 操作说明](docs/CLI.md#终端选择与复制)。
+
 ```powershell
+.\dist\runbook.exe tui
 .\dist\runbook.exe gui
 .\dist\runbook.exe gui ../another-project
 .\dist\runbook.exe schema --list

@@ -14,7 +14,10 @@ runbook project add            # 添加当前目录
 runbook project add ..\my-app  # 添加其他目录
 runbook gui                    # 打开当前目录对应的项目
 runbook gui ..\my-app          # 打开其他目录对应的项目
+runbook tui                    # 在终端选择并复制命令
 ```
+
+在 TUI 中单击选择项目或命令，双击命令即可复制；滚轮操作指针所在列表或预览区。顶部“复制／参数／退出”按钮也可直接点击，Enter 则复制当前命令并退出。
 
 应用内终端可以直接使用 `runbook`。需要在外部终端全局使用时，双击 `scripts\register-cli.cmd` 即可为当前 Windows 用户注册，无需管理员权限；注册后重新打开终端。也可以在 PowerShell 运行 `scripts\register-cli.ps1`，或直接使用 `runbook.exe` 的完整路径。搬动程序目录后，再运行一次注册脚本更新位置。
 
