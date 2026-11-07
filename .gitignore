@@ -7,6 +7,9 @@
 /.qa/
 /.taste-skill/
 /local-only/
+/.keys/
+**/.runbook-update/
+**/.runbook-runtime.lock
 /examples/
 /scripts/desktop-smoke.mjs
 /docs/VERIFICATION.md

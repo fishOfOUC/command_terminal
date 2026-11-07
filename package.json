@@ -1,13 +1,14 @@
 {
   "name": "runbook-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "prepare:frontend": "node scripts/prepare-frontend.mjs",
     "dev": "tauri dev",
     "build": "tauri build --no-bundle",
     "build:cli": "cargo build --release -p runbook-cli",
-    "test": "cargo test -p runbook-core -p runbook-cli",
+    "test": "cargo test -p runbook-core -p runbook-cli -p runbook-update",
+    "test:update": "node scripts/update-smoke.mjs",
     "test:projects": "node scripts/project-ux-smoke.mjs",
     "test:gui": "node scripts/gui-smoke.mjs",
     "test:portable": "node scripts/portable-smoke.mjs",

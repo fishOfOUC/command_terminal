@@ -103,7 +103,92 @@ fn set_theme(theme: String, window: tauri::WebviewWindow) -> Result<(), String> 
         .set_theme(Some(theme))
         .map_err(|error| error.to_string())
 }
+#[tauri::command]
+fn update_status(
+    updater: State<'_, std::sync::Arc<runbook_update::Controller>>,
+) -> runbook_update::UpdateStatus {
+    updater.status()
+}
+#[tauri::command]
+async fn update_check(
+    updater: State<'_, std::sync::Arc<runbook_update::Controller>>,
+) -> Result<runbook_update::UpdateStatus, String> {
+    let updater = updater.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || updater.check().map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn update_download(
+    updater: State<'_, std::sync::Arc<runbook_update::Controller>>,
+) -> Result<runbook_update::UpdateStatus, String> {
+    let updater = updater.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || updater.download().map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn update_install(
+    app: tauri::AppHandle,
+    project: Option<String>,
+    backend: State<'_, Backend>,
+    updater: State<'_, std::sync::Arc<runbook_update::Controller>>,
+) -> Result<(), String> {
+    if let Some(id) = &project {
+        runbook_core::model::validate_id(id).map_err(|e| e.to_string())?;
+    }
+    let data = backend
+        .store
+        .path()
+        .parent()
+        .ok_or("数据目录不可用")?
+        .to_path_buf();
+    let updater = updater.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        updater
+            .install(&data, project)
+            .map_err(|e| format!("{e:#}"))
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    // Request a normal Tauri exit, allowing the existing terminal cleanup hook to run.
+    app.exit(0);
+    Ok(())
+}
+#[tauri::command]
+fn update_ready() -> Result<(), String> {
+    runbook_update::application_dir()
+        .and_then(|dir| runbook_update::acknowledge(&dir))
+        .map_err(|e| format!("{e:#}"))
+}
+
 fn main() {
+    let app_dir = runbook_update::application_dir().expect("Could not locate application");
+    let _runtime_guard = match runbook_update::RuntimeGuard::acquire(&app_dir) {
+        Ok(guard) => guard,
+        Err(error) => {
+            if runbook_update::is_recovery_scheduled(&error) {
+                return;
+            }
+            eprintln!("{error:#}");
+            #[cfg(windows)]
+            {
+                let message: Vec<u16> =
+                    format!("{error:#}").encode_utf16().chain(Some(0)).collect();
+                let title: Vec<u16> = "Runbook".encode_utf16().chain(Some(0)).collect();
+                // SAFETY: both UTF-16 strings are NUL terminated and remain alive for this synchronous call.
+                unsafe {
+                    windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW(
+                        std::ptr::null_mut(),
+                        message.as_ptr(),
+                        title.as_ptr(),
+                        0x30,
+                    );
+                }
+            }
+            return;
+        }
+    };
     let startup = Startup::parse();
     let store = Store::open_application(
         default_data_dir().expect("Could not locate Runbook data directory"),
@@ -133,6 +218,9 @@ fn main() {
     }
     tauri::Builder::default()
         .setup(move |app| {
+            app.manage(std::sync::Arc::new(runbook_update::Controller::new(
+                app_dir,
+            )));
             app.manage(Backend {
                 store,
                 terminals: TerminalManager::default(),
@@ -149,7 +237,12 @@ fn main() {
             terminal_resize,
             terminal_stop,
             terminal_close,
-            set_theme
+            set_theme,
+            update_status,
+            update_check,
+            update_download,
+            update_install,
+            update_ready
         ])
         .build(context)
         .expect("Could not initialize Runbook desktop")

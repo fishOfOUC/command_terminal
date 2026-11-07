@@ -1,0 +1,33 @@
+name: Portable release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+      - run: node scripts/check-version.mjs
+      - run: cargo test --locked -p runbook-core -p runbook-cli -p runbook-update
+      - name: Build and sign portable update
+        shell: pwsh
+        env:
+          RUNBOOK_SIGNING_KEY_PEM: ${{ secrets.RUNBOOK_SIGNING_KEY_PEM }}
+        run: |
+          if (-not $env:RUNBOOK_SIGNING_KEY_PEM) { throw 'Configure RUNBOOK_SIGNING_KEY_PEM before creating release tags' }
+          ./build.ps1 -SignUpdate -ReleaseNotes docs/RELEASE_NOTES.md
+      - name: Create reviewable draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME ./release/*.zip ./release/latest.json --draft --verify-tag --generate-notes --title "Runbook $env:GITHUB_REF_NAME"

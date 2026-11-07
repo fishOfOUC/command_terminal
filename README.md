@@ -78,7 +78,9 @@ npm run dev
 .\build.ps1
 ```
 
-构建同时生成 `release/Runbook-0.1.0-windows-x64.zip`。压缩包只含程序、日常说明和 AI 文档，不包含 `dist/data`、本机 WebView 缓存或测试库。
+构建同时生成 `release/Runbook-0.1.1-windows-x64.zip`。压缩包只含程序、日常说明和 AI 文档，不包含 `dist/data`、本机 WebView 缓存或测试库。
+
+项目页和命令工作台右上角提供“检查更新”：后台下载、签名验证、确认后重启，同时更新桌面和 CLI，保留本地数据。首次从旧版升级以及后续签名发布流程见 [更新说明](docs/UPDATES.md)。
 
 只构建 CLI（不需要 Tauri/WebView2）：
 

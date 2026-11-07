@@ -461,6 +461,17 @@ fn run(
     ))
 }
 fn execute(cli: Cli) -> Result<(Value, u8)> {
+    let _runtime_guard = if matches!(&cli.action, Action::Schema { .. }) {
+        None
+    } else {
+        Some(
+            runbook_update::RuntimeGuard::acquire(
+                &runbook_update::application_dir()
+                    .map_err(|e| ApiError::new("UPDATE_ERROR", format!("{e:#}")))?,
+            )
+            .map_err(|e| ApiError::new("UPDATE_ERROR", format!("{e:#}")))?,
+        )
+    };
     if let Action::Gui { path } = cli.action {
         let dir = cli.data_dir.map(Ok).unwrap_or_else(default_data_dir)?;
         return Ok((gui::open(dir, path)?, 0));

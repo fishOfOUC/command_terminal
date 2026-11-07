@@ -1,0 +1,14 @@
+/* A utility dialog using the existing Runbook control and surface tokens. */
+.update-entry { white-space:nowrap; }
+#app-update { width:min(540px,calc(100% - 32px)); }
+#app-update .dialog-body { display:grid; gap:var(--s4); overflow-wrap:anywhere; }
+#update-notes { white-space:pre-wrap; max-height:220px; overflow:auto; font-size:var(--fs-small); }
+#update-progress { width:100%; height:8px; accent-color:var(--text); }
+#update-transfer { font-variant-numeric:tabular-nums; font-size:var(--fs-small); }
+#update-confirm { color:var(--text); padding:var(--s3); background:var(--surface); }
+#update-previous,.update-data-note { font-size:var(--fs-small); color:var(--muted); }
+@media(max-width:640px) {
+  #app-update .dialog-header,#app-update .dialog-body,#app-update .dialog-footer { padding:var(--s4); }
+  #app-update .dialog-footer { flex-wrap:wrap; }
+  #app-update button { min-height:44px; }
+}

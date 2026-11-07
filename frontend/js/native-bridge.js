@@ -28,7 +28,4 @@ const Runbook = {
 };
 if (Runbook.native) {
   document.documentElement.dataset.runtime = 'desktop';
-  window.addEventListener('DOMContentLoaded',() => {
-    document.querySelectorAll('.statusbar-right .mono:last-child').forEach(el=>el.textContent='RUNBOOK v0.1');
-  });
 }

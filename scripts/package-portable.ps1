@@ -10,8 +10,8 @@ $taskRelease = Join-Path $taskRoot 'release'
 $taskArchive = Join-Path $taskRelease ('Runbook-' + $taskVersion + '-windows-x64.zip')
 New-Item -ItemType Directory -Path $taskStage,$taskRelease -Force | Out-Null
 # Explicit release contents: local databases and WebView profiles must never be distributed.
-foreach ($taskEntry in @('Runbook-Desktop.exe','runbook.exe','README.md','LICENSE','AI_GUIDE.md','docs','skills','scripts')) {
-    Copy-Item -LiteralPath (Join-Path $taskDist $taskEntry) -Destination $taskStage -Recurse -Force
+foreach ($taskEntry in @('Runbook-Desktop.exe','runbook.exe','runbook-updater.exe','README.md','LICENSE','AI_GUIDE.md','docs','skills','scripts')) {
+    Copy-Item -LiteralPath (Join-Path $taskDist $taskEntry) -Destination (Join-Path $taskStage $taskEntry) -Recurse -Force
 }
 Compress-Archive -Path (Join-Path $taskStage '*') -DestinationPath $taskArchive -Force
 $taskZip = [IO.Compression.ZipFile]::OpenRead($taskArchive)
