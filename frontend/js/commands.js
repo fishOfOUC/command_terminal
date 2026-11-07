@@ -10,6 +10,21 @@ function assembled(command) {
   return chunks.filter(Boolean).join(' ');
 }
 
+async function copyCommand(command) {
+  const text = assembled(command);
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text; area.setAttribute('readonly', ''); area.style.position = 'fixed'; area.style.opacity = '0';
+    document.body.appendChild(area); area.select();
+    const copied = document.execCommand('copy');
+    area.remove();
+    if (!copied) { toast('复制失败，请手动选择预览中的命令。'); return; }
+  }
+  toast('命令已复制');
+}
+
 function parameterMarkup(command, param) {
   const id = `param-${command.id}-${param.id}`;
   if (param.type === 'boolean') return `<div class="toggle-line"><label for="${id}" class="od-field"><span>${escapeHTML(param.label)}</span><span class="parameter-flag">${escapeHTML(param.flag)}</span></label><label class="switch"><input id="${id}" type="checkbox" data-param="${param.id}" ${param.value ? 'checked' : ''} aria-label="${escapeHTML(param.label)}"><span class="switch-visual" aria-hidden="true"></span></label></div>`;
@@ -23,7 +38,7 @@ function renderCommands() {
   $('#command-list').innerHTML = visible.length ? visible.map(command => {
     const selected = command.id === state.selected;
     const running = state.running && state.running.id === command.id;
-    return `<article class="command ${selected ? 'selected' : ''}" data-command="${command.id}"><div class="command-summary"><button class="command-toggle" type="button" data-action="select" aria-expanded="${selected}" aria-controls="config-${command.id}">${icon(selected ? 'down' : 'chevron')}<span class="od-field"><span class="command-name">${escapeHTML(command.name)}</span><span class="command-base mono od-truncate">${escapeHTML(command.base)}</span></span></button><button class="icon-button run-button" type="button" data-action="run" aria-label="执行${escapeHTML(command.name)}" title="${'执行' + escapeHTML(command.name)}">${running ? '<span class="running-indicator" aria-hidden="true"></span>' : icon('play')}</button></div><div id="config-${command.id}" class="command-config" ${selected ? '' : 'hidden'}><div class="config-caption"><span>参数配置</span><button type="button" class="text-button" data-action="edit">${icon('edit')}编辑命令</button></div><div class="parameter-grid">${command.params.filter(p => p.type !== 'boolean').map(p => parameterMarkup(command,p)).join('')}</div>${command.params.filter(p => p.type === 'boolean').map(p => parameterMarkup(command,p)).join('')}${command.params.length ? '' : '<p class="no-parameters">这条命令无需配置参数。</p>'}<div class="preview-wrap"><div class="preview-label">执行预览</div><code class="command-preview" data-preview>${escapeHTML(assembled(command))}</code></div></div></article>`;
+    return `<article class="command ${selected ? 'selected' : ''}" data-command="${command.id}"><div class="command-summary"><button class="command-toggle" type="button" data-action="select" aria-expanded="${selected}" aria-controls="config-${command.id}">${icon(selected ? 'down' : 'chevron')}<span class="od-field"><span class="command-name">${escapeHTML(command.name)}</span><span class="command-base mono od-truncate">${escapeHTML(command.base)}</span></span></button><button class="icon-button copy-button" type="button" data-action="copy" aria-label="复制${escapeHTML(command.name)}的命令" title="复制命令">${icon('copy')}</button><button class="icon-button run-button" type="button" data-action="run" aria-label="执行${escapeHTML(command.name)}" title="${'执行' + escapeHTML(command.name)}">${running ? '<span class="running-indicator" aria-hidden="true"></span>' : icon('play')}</button></div><div id="config-${command.id}" class="command-config" ${selected ? '' : 'hidden'}><div class="config-caption"><span>参数配置</span><button type="button" class="text-button" data-action="edit">${icon('edit')}编辑命令</button></div><div class="parameter-grid">${command.params.filter(p => p.type !== 'boolean').map(p => parameterMarkup(command,p)).join('')}</div>${command.params.filter(p => p.type === 'boolean').map(p => parameterMarkup(command,p)).join('')}${command.params.length ? '' : '<p class="no-parameters">这条命令无需配置参数。</p>'}<div class="preview-wrap"><div class="preview-label">执行预览</div><code class="command-preview" data-preview>${escapeHTML(assembled(command))}</code></div></div></article>`;
   }).join('') : commands.length ? '<div class="empty-search"><h3>没有找到匹配的命令</h3><p>尝试其他名称，或添加一条新命令。</p><button type="button" class="secondary-button" data-action="reset-search">清除搜索</button></div>' : '<div class="empty-search"><h3>项目的第一条命令</h3><p>把常用操作留在这里，下次打开项目就能继续。</p><button type="button" class="secondary-button" data-action="create-command">新增命令</button></div>';
 }
 function validateParameter(command,param) {
@@ -54,6 +69,7 @@ $('#command-list').addEventListener('click', event => {
   if (!command) return;
   if (button.dataset.action === 'select') { state.selected = state.selected === command.id ? null : command.id; renderCommands(); focusCommand(command.id); }
   if (button.dataset.action === 'run') execute(command);
+  if (button.dataset.action === 'copy') copyCommand(command);
   if (button.dataset.action === 'edit') openEditor(command);
 });
 function updateParameter(event) {

@@ -5,6 +5,7 @@
   .text-button:hover,.icon-button:not(:disabled):hover { color:var(--text); background:var(--active); }
   .command-toggle:hover .command-name { color:var(--text); text-decoration:underline; text-underline-offset:8px; text-decoration-color:var(--muted); }
   .run-button:not(:disabled):hover { border-color:var(--accent); }
+  .copy-button:not(:disabled):hover { border-color:var(--muted); }
 }
 @media (min-width:1440px) { .workspace { grid-template-columns:minmax(440px,34%) minmax(0,1fr); } .library-head { padding-inline:var(--s8); } .commands-scroll { padding-inline:var(--s6); } }
 @media (min-width:1800px) { .workspace { grid-template-columns:520px minmax(0,1fr); } }

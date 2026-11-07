@@ -22,8 +22,8 @@ h1 { font-size:var(--fs-title); font-weight:600; letter-spacing:-.5px; }
 .command-name { font-size:var(--fs-body); font-weight:500; line-height:24px; overflow-wrap:anywhere; }
 .command-base { font-size:var(--fs-small); line-height:24px; color:var(--faint); }
 .command.selected .command-name { text-decoration:underline; text-decoration-color:var(--accent); text-underline-offset:8px; text-decoration-thickness:1px; }
-.run-button { border:1px solid var(--control); background:var(--ground); color:var(--text); }
-.run-button .od-icon { --od-icon-size:16px; }
+.run-button,.copy-button { border:1px solid var(--control); background:var(--ground); color:var(--text); }
+.run-button .od-icon,.copy-button .od-icon { --od-icon-size:16px; }
 .command-config { padding:0 var(--s5) var(--s5) var(--s5); }
 .config-caption { display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--control); padding-top:var(--s3); margin-bottom:var(--s4); color:var(--muted); font-size:var(--fs-meta); }
 .config-caption .text-button { min-height:28px; padding:0; font-size:var(--fs-meta); }
