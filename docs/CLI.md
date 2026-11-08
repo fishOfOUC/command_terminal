@@ -4,6 +4,8 @@ CLI 是独立的 Rust 程序，数据管理操作不启动 Tauri、浏览器或 
 
 Windows 可双击 `scripts/register-cli.cmd`，或在 PowerShell 运行 `scripts/register-cli.ps1`，为当前用户注册全局 `runbook` 命令，无需管理员权限。这两个脚本随源码和便携包提供，自动定位对应的 CLI。启动器保留调用目录；注册后重新打开终端，搬动程序后重新运行脚本更新路径。也可以继续使用可执行文件的完整路径。
 
+直接运行 `runbook`（不带参数）与 `runbook --help` 相同：显示有换行的帮助文本，退出码为 0，不访问或创建数据库。未知命令、缺失参数等错误仍返回 JSON 错误，退出码为 2。
+
 ## 终端选择与复制
 
 ```powershell

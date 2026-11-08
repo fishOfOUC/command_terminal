@@ -510,7 +510,11 @@ fn execute(cli: Cli) -> Result<(Value, u8)> {
     Ok((dispatch(&store, request)?, 0))
 }
 fn main() -> ExitCode {
-    let cli = match Cli::try_parse() {
+    let mut args: Vec<_> = std::env::args_os().collect();
+    if args.len() == 1 {
+        args.push("--help".into());
+    }
+    let cli = match Cli::try_parse_from(args) {
         Ok(cli) => cli,
         Err(error) => {
             if matches!(

@@ -10,6 +10,38 @@ fn cli(dir: &Path, args: &[&str], input: Option<Value>) -> (i32, Value) {
 }
 
 #[test]
+fn no_arguments_prints_help_successfully_without_creating_a_database() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = temp.path().join("unused");
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_runbook"))
+            .env("RUNBOOK_DATA_DIR", &db)
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let out = run(&[]);
+    let help = run(&["--help"]);
+    assert_eq!(out.status.code(), Some(0));
+    assert!(out.stderr.is_empty());
+    assert_eq!(out.stdout, help.stdout);
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(text.contains("\nUsage:"));
+    assert!(text.contains("\nCommands:"));
+    assert!(text.contains("AI quick start:"));
+
+    for args in [&["unknown"][..], &["project"][..], &["--data-dir"][..]] {
+        let error = run(args);
+        assert_eq!(error.status.code(), Some(2));
+        assert!(error.stderr.is_empty());
+        let value: Value = serde_json::from_slice(&error.stdout).unwrap();
+        assert_eq!(value["ok"], false);
+        assert_eq!(value["error"]["code"], "INVALID_ARGUMENT");
+    }
+    assert!(!db.exists());
+}
+
+#[test]
 fn tui_requires_a_terminal_without_creating_a_database_or_emitting_escape_codes() {
     let temp = tempfile::tempdir().unwrap();
     let db = temp.path().join("unused");
